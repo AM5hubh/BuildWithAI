@@ -2,7 +2,7 @@ import React, { useEffect } from "react";
 import { ReactFlowProvider } from "reactflow";
 import { Toolbar } from "./components/Toolbar";
 import { FlowCanvas } from "./components/FlowCanvas";
-import { OutputPanel } from "./components/OutputPanel";
+import { RightPanel } from "./components/RightPanel";
 import { useFlowStore } from "./store/flowStore";
 
 // Import blocks to ensure they are registered
@@ -90,8 +90,8 @@ function App() {
           {/* Flow Canvas */}
           <FlowCanvas />
 
-          {/* Output Panel */}
-          <OutputPanel />
+          {/* Right Panel with toggle */}
+          <RightPanel />
         </div>
       </div>
     </ReactFlowProvider>

@@ -10,7 +10,13 @@ export interface Block {
   output: any;
 }
 
-export type BlockType = "prompt" | "model" | "output";
+export type BlockType =
+  | "prompt"
+  | "model"
+  | "output"
+  | "tool"
+  | "memory"
+  | "datasource";
 
 /**
  * Configuration for different block types
@@ -27,6 +33,21 @@ export interface BlockConfig {
 
   // OutputBlock config
   displayFormat?: "text" | "json" | "markdown";
+
+  // ToolBlock config
+  url?: string;
+  method?: "GET" | "POST" | "PUT" | "DELETE";
+  headers?: Record<string, string>;
+  timeout?: number;
+
+  // MemoryBlock config
+  operation?: "set" | "get" | "append" | "clear";
+  key?: string;
+  value?: any;
+
+  // DataSourceBlock config
+  sourceType?: "json" | "csv" | "api" | "mock";
+  format?: string;
 }
 
 /**

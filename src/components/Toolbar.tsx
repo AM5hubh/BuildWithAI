@@ -77,6 +77,18 @@ export const Toolbar: React.FC = () => {
     useFlowStore.getState().addNode("output", { x: 700, y: 100 });
   };
 
+  const handleAddTool = () => {
+    useFlowStore.getState().addNode("tool", { x: 250, y: 300 });
+  };
+
+  const handleAddMemory = () => {
+    useFlowStore.getState().addNode("memory", { x: 450, y: 300 });
+  };
+
+  const handleAddDataSource = () => {
+    useFlowStore.getState().addNode("datasource", { x: 650, y: 300 });
+  };
+
   const handleClear = () => {
     if (confirm("Clear all blocks?")) {
       useFlowStore.getState().setNodes([]);
@@ -112,6 +124,24 @@ export const Toolbar: React.FC = () => {
               className="px-3 py-1.5 text-sm bg-orange-100 text-orange-700 rounded hover:bg-orange-200 transition"
             >
               + Output
+            </button>
+            <button
+              onClick={handleAddTool}
+              className="px-3 py-1.5 text-sm bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition"
+            >
+              + Tool
+            </button>
+            <button
+              onClick={handleAddMemory}
+              className="px-3 py-1.5 text-sm bg-cyan-100 text-cyan-700 rounded hover:bg-cyan-200 transition"
+            >
+              + Memory
+            </button>
+            <button
+              onClick={handleAddDataSource}
+              className="px-3 py-1.5 text-sm bg-amber-100 text-amber-700 rounded hover:bg-amber-200 transition"
+            >
+              + Data Source
             </button>
           </div>
 

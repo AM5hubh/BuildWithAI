@@ -17,6 +17,7 @@ interface FlowStore {
   // Flow state
   nodes: Node[];
   edges: Edge[];
+  selectedNodeId: string | null;
 
   // Execution state
   executionState: FlowExecutionState;
@@ -31,6 +32,7 @@ interface FlowStore {
   deleteNode: (nodeId: string) => void;
   duplicateNode: (nodeId: string) => void;
   updateNodeData: (nodeId: string, data: any) => void;
+  setSelectedNodeId: (nodeId: string | null) => void;
 
   // Execution actions
   setExecutionState: (state: Partial<FlowExecutionState>) => void;
@@ -46,6 +48,7 @@ let nodeIdCounter = 1;
 export const useFlowStore = create<FlowStore>((set, get) => ({
   nodes: [],
   edges: [],
+  selectedNodeId: null,
 
   executionState: {
     isRunning: false,
@@ -57,6 +60,8 @@ export const useFlowStore = create<FlowStore>((set, get) => ({
   setNodes: (nodes) => set({ nodes }),
 
   setEdges: (edges) => set({ edges }),
+
+  setSelectedNodeId: (nodeId) => set({ selectedNodeId: nodeId }),
 
   onNodesChange: (changes) => {
     set({
@@ -98,6 +103,8 @@ export const useFlowStore = create<FlowStore>((set, get) => ({
       edges: get().edges.filter(
         (e) => e.source !== nodeId && e.target !== nodeId,
       ),
+      selectedNodeId:
+        get().selectedNodeId === nodeId ? null : get().selectedNodeId,
     });
   },
 

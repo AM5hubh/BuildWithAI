@@ -2,5 +2,8 @@
 import "./PromptBlock";
 import "./ModelBlock";
 import "./OutputBlock";
+import "./ToolBlock";
+import "./MemoryBlock";
+import "./DataSourceBlock";
 
 export { blockRegistry } from "./registry";
