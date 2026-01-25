@@ -3,7 +3,9 @@ import { ReactFlowProvider } from "reactflow";
 import { Toolbar } from "./components/Toolbar";
 import { FlowCanvas } from "./components/FlowCanvas";
 import { RightPanel } from "./components/RightPanel";
+import { SyncIndicator } from "./components/SyncIndicator";
 import { useFlowStore } from "./store/flowStore";
+import { loadFlowLocally } from "./utils/flowPersistence";
 
 // Import blocks to ensure they are registered
 import "./blocks";
@@ -13,12 +15,23 @@ import "./blocks";
  * Composable AI Studio - Build AI applications visually
  */
 function App() {
-  const { addNode, setEdges } = useFlowStore();
+  const { setNodes, setEdges, addNode } = useFlowStore();
 
-  // Initialize with a default example flow
+  // Initialize with a default example flow or load from localStorage
   useEffect(() => {
-    // Add default nodes for demo
-    const initializeDefaultFlow = () => {
+    const initializeFlow = () => {
+      // Try to load from localStorage first
+      const savedFlow = loadFlowLocally();
+
+      if (savedFlow && savedFlow.nodes.length > 0) {
+        // Restore from localStorage
+        setNodes(savedFlow.nodes);
+        setEdges(savedFlow.edges);
+        console.log("✓ Flow restored from localStorage");
+        return;
+      }
+
+      // Otherwise create default flow
       const nodes = useFlowStore.getState().nodes;
       if (nodes.length === 0) {
         // Add Prompt Block
@@ -63,21 +76,24 @@ function App() {
       }
     };
 
-    initializeDefaultFlow();
-  }, []);
+    initializeFlow();
+  }, [setNodes, setEdges, addNode]);
 
   return (
     <ReactFlowProvider>
       <div className="h-screen flex flex-col">
-        {/* Header */}
+        {/* Header with Sync Indicator */}
         <header className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-6 py-4 shadow-lg">
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-2xl font-bold">BuildWithAi</h1>
               <p className="text-sm text-blue-100">Composable AI Studio</p>
             </div>
-            <div className="text-xs text-blue-100">
-              Build AI applications visually with drag-and-drop blocks
+            <div className="flex items-center gap-6">
+              <div className="text-xs text-blue-100">
+                Build AI applications visually with drag-and-drop blocks
+              </div>
+              <SyncIndicator />
             </div>
           </div>
         </header>

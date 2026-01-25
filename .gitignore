@@ -15,6 +15,7 @@ dist-ssr
 .env
 .github
 docs
+flows/*
 
 # Editor directories and files
 .vscode/*
