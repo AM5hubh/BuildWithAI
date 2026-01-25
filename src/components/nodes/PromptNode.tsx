@@ -27,13 +27,6 @@ export const PromptNode = memo(({ data, id, selected }: NodeProps) => {
           </div>
           <div className="flex items-center gap-1">
             <button
-              onClick={() => setIsEditorOpen(true)}
-              className="text-gray-400 hover:text-purple-600 text-sm leading-none transition"
-              title="Edit prompt"
-            >
-              ✎
-            </button>
-            <button
               onClick={() => deleteNode(id)}
               className="text-gray-400 hover:text-red-500 text-lg leading-none transition"
               title="Delete block"

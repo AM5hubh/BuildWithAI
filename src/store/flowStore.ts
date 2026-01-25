@@ -18,6 +18,8 @@ interface FlowStore {
   nodes: Node[];
   edges: Edge[];
   selectedNodeId: string | null;
+  selectedEdgeId: string | null;
+  selectedEdgePos: { x: number; y: number } | null;
 
   // Execution state
   executionState: FlowExecutionState;
@@ -30,9 +32,14 @@ interface FlowStore {
   onConnect: (connection: Connection) => void;
   addNode: (type: string, position: { x: number; y: number }) => void;
   deleteNode: (nodeId: string) => void;
+  deleteEdge: (edgeId: string) => void;
   duplicateNode: (nodeId: string) => void;
   updateNodeData: (nodeId: string, data: any) => void;
   setSelectedNodeId: (nodeId: string | null) => void;
+  setSelectedEdge: (
+    edgeId: string | null,
+    pos: { x: number; y: number } | null,
+  ) => void;
 
   // Execution actions
   setExecutionState: (state: Partial<FlowExecutionState>) => void;
@@ -49,6 +56,8 @@ export const useFlowStore = create<FlowStore>((set, get) => ({
   nodes: [],
   edges: [],
   selectedNodeId: null,
+  selectedEdgeId: null,
+  selectedEdgePos: null,
 
   executionState: {
     isRunning: false,
@@ -62,6 +71,17 @@ export const useFlowStore = create<FlowStore>((set, get) => ({
   setEdges: (edges) => set({ edges }),
 
   setSelectedNodeId: (nodeId) => set({ selectedNodeId: nodeId }),
+
+  setSelectedEdge: (edgeId, pos) =>
+    set({ selectedEdgeId: edgeId, selectedEdgePos: pos }),
+
+  deleteEdge: (edgeId) => {
+    set({
+      edges: get().edges.filter((e) => e.id !== edgeId),
+      selectedEdgeId: null,
+      selectedEdgePos: null,
+    });
+  },
 
   onNodesChange: (changes) => {
     set({

@@ -5,6 +5,7 @@ import ReactFlow, {
   MiniMap,
   BackgroundVariant,
   OnSelectionChangeParams,
+  EdgeMouseHandler,
 } from "reactflow";
 import "reactflow/dist/style.css";
 
@@ -13,6 +14,7 @@ import { PromptNode, ModelNode, OutputNode } from "./nodes";
 import { ToolNode } from "./nodes/ToolNode";
 import { MemoryNode } from "./nodes/MemoryNode";
 import { DataSourceNode } from "./nodes/DataSourceNode";
+import { EdgeContextMenu } from "./EdgeContextMenu";
 
 // Define custom node types
 const nodeTypes = {
@@ -36,7 +38,10 @@ export const FlowCanvas: React.FC = () => {
     onEdgesChange,
     onConnect,
     selectedNodeId,
+    selectedEdgeId,
+    selectedEdgePos,
     setSelectedNodeId,
+    setSelectedEdge,
   } = useFlowStore();
 
   const handleSelectionChange = useCallback(
@@ -48,6 +53,17 @@ export const FlowCanvas: React.FC = () => {
     [selectedNodeId, setSelectedNodeId],
   );
 
+  const handleEdgeClick: EdgeMouseHandler = useCallback(
+    (event, edge: any) => {
+      event.preventDefault();
+      const mouseX = event.clientX;
+      const mouseY = event.clientY;
+      // edge is the edge object, extract the id
+      setSelectedEdge(edge.id, { x: mouseX, y: mouseY });
+    },
+    [setSelectedEdge],
+  );
+
   return (
     <div className="flex-1 bg-gray-50">
       <ReactFlow
@@ -57,6 +73,8 @@ export const FlowCanvas: React.FC = () => {
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}
         onSelectionChange={handleSelectionChange}
+        onEdgeClick={handleEdgeClick}
+        onPaneClick={() => setSelectedEdge(null, null)}
         nodeTypes={nodeTypes}
         fitView
         attributionPosition="bottom-left"
@@ -65,6 +83,8 @@ export const FlowCanvas: React.FC = () => {
         <Controls />
         <MiniMap />
       </ReactFlow>
+
+      <EdgeContextMenu edgeId={selectedEdgeId} position={selectedEdgePos} />
     </div>
   );
 };
