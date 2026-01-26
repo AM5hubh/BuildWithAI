@@ -16,7 +16,7 @@ const dataSourceBlockDefinition: BlockDefinition = {
     format: "json",
   },
 
-  execute: async (block: Block, input: any): Promise<any> => {
+  execute: async (block: Block): Promise<any> => {
     const { sourceType = "mock", url = "" } = block.config;
 
     try {
