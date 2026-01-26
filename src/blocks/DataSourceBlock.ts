@@ -17,7 +17,7 @@ const dataSourceBlockDefinition: BlockDefinition = {
   },
 
   execute: async (block: Block, input: any): Promise<any> => {
-    const { sourceType = "mock", url = "", format = "json" } = block.config;
+    const { sourceType = "mock", url = "" } = block.config;
 
     try {
       switch (sourceType) {

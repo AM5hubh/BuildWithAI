@@ -5,5 +5,9 @@ import "./OutputBlock";
 import "./ToolBlock";
 import "./MemoryBlock";
 import "./DataSourceBlock";
+import "./TextFormatterBlock";
+import "./WebSearchBlock";
+import "./ConditionBlock";
+import "./FileReaderBlock";
 
 export { blockRegistry } from "./registry";

@@ -2,6 +2,7 @@ import { Node, Edge } from "reactflow";
 import { Block } from "../types/Block";
 import { blockRegistry } from "../blocks";
 import { topologicalSort } from "./topologicalSort";
+import { validateGraph, logValidationResults } from "../utils/graphValidator";
 
 /**
  * Execution Engine
@@ -27,8 +28,32 @@ export class ExecutionEngine {
     ) => void,
   ): Promise<Record<string, any>> {
     try {
+      // Validate graph structure first
+      const validation = validateGraph(nodes, edges);
+      logValidationResults(validation);
+
+      if (validation.errors.length > 0) {
+        throw new Error(
+          `Graph validation failed:\n${validation.errors.map((e) => `• ${e}`).join("\n")}`,
+        );
+      }
+
+      // Debug logging
+      console.log(
+        `[ExecutionEngine] Starting execution with ${nodes.length} nodes and ${edges.length} edges`,
+      );
+      console.log(
+        "[ExecutionEngine] Nodes:",
+        nodes.map((n) => ({ id: n.id, type: n.type, label: n.data?.label })),
+      );
+      console.log(
+        "[ExecutionEngine] Edges:",
+        edges.map((e) => ({ id: e.id, source: e.source, target: e.target })),
+      );
+
       // Step 1: Perform topological sort to get execution order
       const executionOrder = topologicalSort(nodes, edges);
+      console.log("[ExecutionEngine] Execution order:", executionOrder);
 
       // Step 2: Create a map to store results
       const results: Record<string, any> = {};

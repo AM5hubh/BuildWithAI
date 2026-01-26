@@ -9,6 +9,7 @@ import {
 } from "reactflow";
 import { Flow, FlowExecutionState } from "../types/Flow";
 import { saveFlowLocally, syncFlowToBackend } from "../utils/flowPersistence";
+import type { ModelInfo } from "../utils/openrouterModels";
 
 /**
  * Central state store using Zustand
@@ -22,6 +23,10 @@ interface FlowStore {
   selectedEdgeId: string | null;
   selectedEdgePos: { x: number; y: number } | null;
   isSyncing: boolean;
+
+  // Models state
+  models: ModelInfo[];
+  loadingModels: boolean;
 
   // Execution state
   executionState: FlowExecutionState;
@@ -43,6 +48,11 @@ interface FlowStore {
     pos: { x: number; y: number } | null,
   ) => void;
 
+  // Models actions
+  setModels: (models: ModelInfo[]) => void;
+  setLoadingModels: (loading: boolean) => void;
+  fetchModels: () => Promise<void>;
+
   // Execution actions
   setExecutionState: (state: Partial<FlowExecutionState>) => void;
   clearExecution: () => void;
@@ -61,12 +71,33 @@ export const useFlowStore = create<FlowStore>((set, get) => ({
   selectedEdgeId: null,
   selectedEdgePos: null,
   isSyncing: false,
+  models: [],
+  loadingModels: false,
 
   executionState: {
     isRunning: false,
     currentBlockId: null,
     results: {},
     errors: {},
+  },
+
+  setModels: (models) => set({ models }),
+  setLoadingModels: (loading) => set({ loadingModels: loading }),
+
+  fetchModels: async () => {
+    set({ loadingModels: true });
+    try {
+      const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:3001";
+      const response = await fetch(`${apiUrl}/api/models`);
+      if (!response.ok) throw new Error("Failed to fetch models");
+      const data = await response.json();
+      set({ models: data.models || [] });
+    } catch (error) {
+      console.error("Failed to fetch models:", error);
+      set({ models: [] });
+    } finally {
+      set({ loadingModels: false });
+    }
   },
 
   setNodes: (nodes) => {

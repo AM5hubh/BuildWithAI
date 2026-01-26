@@ -68,7 +68,8 @@ export const syncFlowToBackend = async (
         updatedAt: Date.now(),
       };
 
-      const response = await fetch("/api/flows/save", {
+      const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:3001";
+      const response = await fetch(`${apiUrl}/api/flows/save`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(flow),
@@ -95,7 +96,8 @@ export const loadFlowFromBackend = async (
   flowId: string,
 ): Promise<Flow | null> => {
   try {
-    const response = await fetch(`/api/flows/${flowId}`);
+    const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:3001";
+    const response = await fetch(`${apiUrl}/api/flows/${flowId}`);
     if (!response.ok) {
       throw new Error(`Server responded with ${response.status}`);
     }

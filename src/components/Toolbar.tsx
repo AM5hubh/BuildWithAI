@@ -2,6 +2,7 @@ import React from "react";
 import { useFlowStore } from "../store/flowStore";
 import { executionEngine } from "../engine/executionEngine";
 import { downloadFlow } from "../utils/flowSerializer";
+import { detectCycle, describeCycle } from "../utils/cycleDetector";
 
 /**
  * Toolbar Component
@@ -17,9 +18,31 @@ export const Toolbar: React.FC = () => {
     saveFlow,
   } = useFlowStore();
 
+  const toolOptions = [
+    { label: "API Tool", type: "tool" as const },
+    { label: "Text Formatter", type: "textFormatter" as const },
+    { label: "Web Search", type: "webSearch" as const },
+    { label: "Condition", type: "condition" as const },
+    { label: "File Reader", type: "fileReader" as const },
+  ];
+
+  const [selectedTool, setSelectedTool] = React.useState(toolOptions[0].type);
+
   const handleRun = async () => {
     if (nodes.length === 0) {
       alert("Please add some blocks to the canvas first.");
+      return;
+    }
+
+    // Check for cycles before attempting execution
+    const cycleInfo = detectCycle(nodes, edges);
+    if (cycleInfo.hasCycle) {
+      const description = describeCycle(cycleInfo, nodes);
+      alert(
+        "⚠️ Circular Dependency Detected!\n\n" +
+          description +
+          "\n\n💡 Tip: Remove one of the connections in the cycle to fix this.",
+      );
       return;
     }
 
@@ -56,6 +79,22 @@ export const Toolbar: React.FC = () => {
       });
     } catch (error) {
       console.error("Execution error:", error);
+
+      // Show user-friendly error message
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error occurred";
+
+      if (errorMessage.includes("Cycle detected")) {
+        // Cycle was detected - provide helpful message
+        alert(
+          "⚠️ Circular Dependency Detected!\n\n" +
+            errorMessage +
+            "\n\n💡 Tip: Check your connections to ensure no block connects back to itself directly or indirectly.",
+        );
+      } else {
+        alert(`Execution Error:\n\n${errorMessage}`);
+      }
+
       setExecutionState({ isRunning: false, currentBlockId: null });
     }
   };
@@ -79,6 +118,14 @@ export const Toolbar: React.FC = () => {
 
   const handleAddTool = () => {
     useFlowStore.getState().addNode("tool", { x: 250, y: 300 });
+  };
+
+  const handleAddSelectedTool = () => {
+    // Stagger positions horizontally for better visibility
+    const index = toolOptions.findIndex((t) => t.type === selectedTool);
+    const baseX = 200 + index * 120;
+    const baseY = 300;
+    useFlowStore.getState().addNode(selectedTool, { x: baseX, y: baseY });
   };
 
   const handleAddMemory = () => {
@@ -131,6 +178,28 @@ export const Toolbar: React.FC = () => {
             >
               + Tool
             </button>
+            <div className="flex items-center gap-2">
+              <select
+                value={selectedTool}
+                onChange={(e) =>
+                  setSelectedTool(e.target.value as typeof selectedTool)
+                }
+                className="px-2 py-1 text-sm border rounded"
+                aria-label="Select tool block"
+              >
+                {toolOptions.map((tool) => (
+                  <option key={tool.type} value={tool.type}>
+                    {tool.label}
+                  </option>
+                ))}
+              </select>
+              <button
+                onClick={handleAddSelectedTool}
+                className="px-3 py-1.5 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 transition"
+              >
+                Add Tool Block
+              </button>
+            </div>
             <button
               onClick={handleAddMemory}
               className="px-3 py-1.5 text-sm bg-cyan-100 text-cyan-700 rounded hover:bg-cyan-200 transition"

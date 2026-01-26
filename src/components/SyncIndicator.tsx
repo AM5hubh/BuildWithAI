@@ -11,13 +11,13 @@ export const SyncIndicator: React.FC = () => {
     <div className="flex items-center gap-2 px-3 py-1 text-xs">
       {isSyncing ? (
         <>
-          <div className="animate-spin w-3 h-3 border-2 border-blue-500 border-t-transparent rounded-full" />
-          <span className="text-blue-600">Syncing...</span>
+          <div className="animate-spin w-3 h-3 border-2 border-yellow-500 border-t-transparent rounded-full" />
+          <span className="text-yellow-600">Syncing...</span>
         </>
       ) : (
         <>
           <div className="w-2 h-2 bg-green-500 rounded-full" />
-          <span className="text-gray-600">Synced</span>
+          <span className="text-white">Synced</span>
         </>
       )}
     </div>

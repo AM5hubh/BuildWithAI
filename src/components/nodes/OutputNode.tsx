@@ -7,6 +7,7 @@ import { useFlowStore } from "../../store/flowStore";
  */
 export const OutputNode = memo(({ data, id, selected }: NodeProps) => {
   const deleteNode = useFlowStore((state) => state.deleteNode);
+  const displayFormat = data?.config?.displayFormat || "text";
 
   return (
     <div
@@ -34,7 +35,9 @@ export const OutputNode = memo(({ data, id, selected }: NodeProps) => {
         </button>
       </div>
 
-      <div className="text-xs text-gray-600">Display result</div>
+      <div className="text-xs text-gray-600">
+        Display result ({displayFormat})
+      </div>
     </div>
   );
 });

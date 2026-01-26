@@ -8,6 +8,7 @@ import { useFlowStore } from "../../store/flowStore";
 export function MemoryNode({ data, id }: any) {
   const deleteNode = useFlowStore((state) => state.deleteNode);
   const isSelected = data.isSelected;
+  const op = data.config?.memoryOperation || data.config?.operation || "set";
 
   return (
     <div
@@ -26,9 +27,7 @@ export function MemoryNode({ data, id }: any) {
         </button>
       </div>
       <div className="text-xs text-cyan-700 break-words">
-        <span className="inline-block bg-cyan-200 px-2 py-1 rounded">
-          {data.config?.operation || "set"}
-        </span>
+        <span className="inline-block bg-cyan-200 px-2 py-1 rounded">{op}</span>
       </div>
       <div className="text-xs text-cyan-600 mt-1">
         key: {data.config?.key || "data"}

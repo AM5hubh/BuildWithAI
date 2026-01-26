@@ -14,6 +14,10 @@ import { PromptNode, ModelNode, OutputNode } from "./nodes";
 import { ToolNode } from "./nodes/ToolNode";
 import { MemoryNode } from "./nodes/MemoryNode";
 import { DataSourceNode } from "./nodes/DataSourceNode";
+import { TextFormatterNode } from "./nodes/TextFormatterNode";
+import { WebSearchNode } from "./nodes/WebSearchNode";
+import { ConditionNode } from "./nodes/ConditionNode";
+import { FileReaderNode } from "./nodes/FileReaderNode";
 import { EdgeContextMenu } from "./EdgeContextMenu";
 
 // Define custom node types
@@ -24,6 +28,10 @@ const nodeTypes = {
   tool: ToolNode,
   memory: MemoryNode,
   datasource: DataSourceNode,
+  textFormatter: TextFormatterNode,
+  webSearch: WebSearchNode,
+  condition: ConditionNode,
+  fileReader: FileReaderNode,
 };
 
 /**

@@ -15,7 +15,7 @@ import "./blocks";
  * Composable AI Studio - Build AI applications visually
  */
 function App() {
-  const { setNodes, setEdges, addNode } = useFlowStore();
+  const { setNodes, setEdges, addNode, fetchModels } = useFlowStore();
 
   // Initialize with a default example flow or load from localStorage
   useEffect(() => {
@@ -76,8 +76,11 @@ function App() {
       }
     };
 
+    // Fetch available models from backend
+    fetchModels();
+
     initializeFlow();
-  }, [setNodes, setEdges, addNode]);
+  }, [setNodes, setEdges, addNode, fetchModels]);
 
   return (
     <ReactFlowProvider>

@@ -1,4 +1,4 @@
-import { Block, BlockDefinition } from "../types/Block";
+import { Block, BlockDefinition, MemoryOperation } from "../types/Block";
 import { blockRegistry } from "./registry";
 
 /**
@@ -11,13 +11,24 @@ const memoryBlockDefinition: BlockDefinition = {
   label: "Memory",
   description: "Store and retrieve data in memory",
   defaultConfig: {
-    operation: "set",
+    memoryOperation: "set",
     key: "data",
     value: null,
   },
 
   execute: async (block: Block, input: any): Promise<any> => {
-    const { operation = "set", key = "data", value } = block.config;
+    const {
+      memoryOperation: memoryOperationConfig,
+      operation: legacyOperation,
+      key = "data",
+      value,
+    } = block.config;
+
+    // Support legacy "operation" field for backwards compatibility
+    const memoryOperation: MemoryOperation =
+      (memoryOperationConfig as MemoryOperation) ||
+      (legacyOperation as MemoryOperation) ||
+      "set";
 
     // Get or initialize memory storage from global scope
     // In a real app, this would be managed by a more persistent store
@@ -26,7 +37,7 @@ const memoryBlockDefinition: BlockDefinition = {
     const memory = (globalThis as any).__FLOW_MEMORY__;
 
     try {
-      switch (operation) {
+      switch (memoryOperation) {
         case "set": {
           // Set value from config or input
           const dataToStore = value !== null ? value : input;
@@ -81,7 +92,7 @@ const memoryBlockDefinition: BlockDefinition = {
         }
 
         default:
-          throw new Error(`Unknown operation: ${operation}`);
+          throw new Error(`Unknown operation: ${memoryOperation}`);
       }
     } catch (error) {
       if (error instanceof Error) {

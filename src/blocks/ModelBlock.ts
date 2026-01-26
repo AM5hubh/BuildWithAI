@@ -27,7 +27,9 @@ const modelBlockDefinition: BlockDefinition = {
 
     try {
       // Call backend API for AI execution
-      const response = await fetch("/api/execute", {
+      // Use absolute URL to avoid proxy issues
+      const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:3001";
+      const response = await fetch(`${apiUrl}/api/execute`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -41,7 +43,10 @@ const modelBlockDefinition: BlockDefinition = {
       });
 
       if (!response.ok) {
-        throw new Error(`API call failed: ${response.statusText}`);
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(
+          `API call failed: ${response.statusText}${errorData.message ? ` - ${errorData.message}` : ""}`,
+        );
       }
 
       const data = await response.json();

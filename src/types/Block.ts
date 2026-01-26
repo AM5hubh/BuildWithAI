@@ -16,12 +16,35 @@ export type BlockType =
   | "output"
   | "tool"
   | "memory"
-  | "datasource";
+  | "datasource"
+  | "textFormatter"
+  | "webSearch"
+  | "condition"
+  | "fileReader";
+
+// Operation types for specific blocks
+export type MemoryOperation = "set" | "get" | "append" | "clear";
+export type TextFormatterOperation =
+  | "uppercase"
+  | "lowercase"
+  | "trim"
+  | "replace"
+  | "capitalize"
+  | "template"
+  | "split"
+  | "join"
+  | "length"
+  | "reverse"
+  | "removeSpaces"
+  | "slugify";
 
 /**
  * Configuration for different block types
  */
 export interface BlockConfig {
+  // Legacy field retained for backward compatibility
+  operation?: string;
+
   // PromptBlock config
   template?: string;
   variables?: Record<string, string>;
@@ -41,13 +64,46 @@ export interface BlockConfig {
   timeout?: number;
 
   // MemoryBlock config
-  operation?: "set" | "get" | "append" | "clear";
+  memoryOperation?: MemoryOperation;
   key?: string;
   value?: any;
 
   // DataSourceBlock config
-  sourceType?: "json" | "csv" | "api" | "mock";
+  sourceType?: "json" | "csv" | "api" | "mock" | "url" | "upload" | "input";
   format?: string;
+
+  // TextFormatterBlock config
+  textOperation?: TextFormatterOperation;
+  findText?: string;
+  replaceWith?: string;
+  separator?: string;
+  textTemplate?: string;
+
+  // WebSearchBlock config
+  searchEngine?: "duckduckgo" | "brave" | "custom";
+  apiKey?: string;
+  maxResults?: number;
+  safeSearch?: boolean;
+  resultFormat?: "summary" | "full" | "urls";
+
+  // ConditionBlock config
+  operator?: string;
+  compareValue?: string;
+  ifTrueValue?: any;
+  ifFalseValue?: any;
+  caseSensitive?: boolean;
+
+  // FileReaderBlock config
+  fileFormat?: "text" | "json" | "csv";
+  encoding?: string;
+  csvDelimiter?: string;
+  parseJson?: boolean;
+  queryParams?: Record<string, string>;
+  bodyTemplate?: string;
+  authType?: string;
+  authValue?: string;
+  responseFieldSelector?: string;
+  fallbackValue?: any;
 }
 
 /**
