@@ -35,7 +35,7 @@ export const ModelNode = memo(({ data, id, selected }: NodeProps) => {
       </div>
 
       <div className="text-xs text-gray-600">
-        {data.config?.model || "anthropic/claude-3.5-sonnet"}
+        {data.config?.model || "liquid/lfm-2.5-1.2b-instruct:free (free)"}
       </div>
 
       <Handle

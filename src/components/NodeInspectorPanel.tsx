@@ -12,7 +12,7 @@ export const NodeInspectorPanel: React.FC = () => {
 
   const [template, setTemplate] = useState("");
   const [variables, setVariables] = useState("{}");
-  const [model, setModel] = useState("anthropic/claude-3.5-sonnet");
+  const [model, setModel] = useState("liquid/lfm-2.5-1.2b-instruct:free");
   const [temperature, setTemperature] = useState(0.7);
   const [maxTokens, setMaxTokens] = useState(1024);
   const [url, setUrl] = useState("");
@@ -62,7 +62,7 @@ export const NodeInspectorPanel: React.FC = () => {
 
     setTemplate(cfg.template || "Explain {topic} in simple terms.");
     setVariables(JSON.stringify(cfg.variables || {}, null, 2));
-    setModel(cfg.model || "anthropic/claude-3.5-sonnet");
+    setModel(cfg.model || "liquid/lfm-2.5-1.2b-instruct:free (free)");
     setTemperature(cfg.temperature ?? 0.7);
     setMaxTokens(cfg.maxTokens ?? 1024);
     setUrl(cfg.url || "");

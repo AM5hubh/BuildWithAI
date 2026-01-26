@@ -10,14 +10,14 @@ const modelBlockDefinition: BlockDefinition = {
   label: "AI Model",
   description: "Execute an AI model with the given prompt",
   defaultConfig: {
-    model: "anthropic/claude-3.5-sonnet",
+    model: "liquid/lfm-2.5-1.2b-instruct:free",
     temperature: 0.7,
     maxTokens: 1024,
   },
 
   execute: async (block: Block, input: any): Promise<any> => {
     const {
-      model = "anthropic/claude-3.5-sonnet",
+      model = "liquid/lfm-2.5-1.2b-instruct:free",
       temperature = 0.7,
       maxTokens = 1024,
     } = block.config;
