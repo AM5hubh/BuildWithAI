@@ -12,6 +12,8 @@ export const NodeInspectorPanel: React.FC = () => {
 
   const [template, setTemplate] = useState("");
   const [variables, setVariables] = useState("{}");
+  const [includeInput, setIncludeInput] = useState(false);
+  const [inputPlaceholder, setInputPlaceholder] = useState("{input}");
   const [model, setModel] = useState("liquid/lfm-2.5-1.2b-instruct:free");
   const [temperature, setTemperature] = useState(0.7);
   const [maxTokens, setMaxTokens] = useState(1024);
@@ -38,6 +40,11 @@ export const NodeInspectorPanel: React.FC = () => {
   const [separator, setSeparator] = useState(",");
   const [textTemplate, setTextTemplate] = useState("{input}");
 
+  const [extractionType, setExtractionType] = useState("regex");
+  const [pattern, setPattern] = useState("(?<=Summary: ).*");
+  const [startDelimiter, setStartDelimiter] = useState("<start>");
+  const [endDelimiter, setEndDelimiter] = useState("<end>");
+
   const [searchEngine, setSearchEngine] = useState("duckduckgo");
   const [apiKey, setApiKey] = useState("");
   const [maxResults, setMaxResults] = useState(5);
@@ -62,6 +69,8 @@ export const NodeInspectorPanel: React.FC = () => {
 
     setTemplate(cfg.template || "Explain {topic} in simple terms.");
     setVariables(JSON.stringify(cfg.variables || {}, null, 2));
+    setIncludeInput(cfg.includeInput ?? false);
+    setInputPlaceholder(cfg.inputPlaceholder || "{input}");
     setModel(cfg.model || "liquid/lfm-2.5-1.2b-instruct:free (free)");
     setTemperature(cfg.temperature ?? 0.7);
     setMaxTokens(cfg.maxTokens ?? 1024);
@@ -97,6 +106,11 @@ export const NodeInspectorPanel: React.FC = () => {
     setReplaceWith(cfg.replaceWith || "");
     setSeparator(cfg.separator || ",");
     setTextTemplate(cfg.textTemplate || cfg.template || "{input}");
+
+    setExtractionType(cfg.extractionType || "regex");
+    setPattern(cfg.pattern || "(?<=Summary: ).*");
+    setStartDelimiter(cfg.startDelimiter || "<start>");
+    setEndDelimiter(cfg.endDelimiter || "<end>");
 
     setSearchEngine(cfg.searchEngine || "duckduckgo");
     setApiKey(cfg.apiKey || "");
@@ -143,6 +157,8 @@ export const NodeInspectorPanel: React.FC = () => {
       case "prompt": {
         updatedConfig.template = template;
         updatedConfig.variables = parseJSON(variables, cfg.variables || {});
+        updatedConfig.includeInput = includeInput;
+        updatedConfig.inputPlaceholder = inputPlaceholder;
         break;
       }
       case "model": {
@@ -189,6 +205,13 @@ export const NodeInspectorPanel: React.FC = () => {
         updatedConfig.replaceWith = replaceWith;
         updatedConfig.separator = separator;
         updatedConfig.textTemplate = textTemplate;
+        break;
+      }
+      case "textExtractor": {
+        updatedConfig.extractionType = extractionType as any;
+        updatedConfig.pattern = pattern;
+        updatedConfig.startDelimiter = startDelimiter;
+        updatedConfig.endDelimiter = endDelimiter;
         break;
       }
       case "webSearch": {
@@ -247,9 +270,44 @@ export const NodeInspectorPanel: React.FC = () => {
         className="w-full border border-gray-300 rounded p-2 text-sm mb-3"
         aria-label="Prompt template"
         rows={5}
+        placeholder="Use {variable_name} for placeholders. Input data from connected blocks will be merged with these variables."
       />
+      <p className="text-xs text-gray-500 mb-3">
+        💡 Variables are replaced in order: input data (from connected blocks) →
+        configured variables (below)
+      </p>
+
+      <label className="inline-flex items-center gap-2 text-sm text-gray-700 mb-3">
+        <input
+          type="checkbox"
+          checked={includeInput}
+          onChange={(e) => setIncludeInput(e.target.checked)}
+        />
+        Include entire previous block output
+      </label>
+
+      {includeInput && (
+        <>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Placeholder for Previous Output
+          </label>
+          <input
+            type="text"
+            value={inputPlaceholder}
+            onChange={(e) => setInputPlaceholder(e.target.value)}
+            className="w-full border border-gray-300 rounded p-2 text-sm mb-3"
+            aria-label="Input placeholder"
+            placeholder="{input}"
+          />
+          <p className="text-xs text-gray-500 mb-3">
+            Use this placeholder in your template to include the previous
+            block's output. Example: "Summarize this: {"{input}"}"
+          </p>
+        </>
+      )}
+
       <label className="block text-sm font-medium text-gray-700 mb-1">
-        Variables (JSON)
+        Variables (JSON) - Static Defaults
       </label>
       <textarea
         value={variables}
@@ -257,6 +315,7 @@ export const NodeInspectorPanel: React.FC = () => {
         className="w-full border border-gray-300 rounded p-2 text-xs font-mono"
         aria-label="Prompt variables JSON"
         rows={4}
+        placeholder='{"topic": "AI", "style": "professional"}'
       />
     </>
   );
@@ -731,6 +790,7 @@ export const NodeInspectorPanel: React.FC = () => {
         <option value="text">text</option>
         <option value="json">json</option>
         <option value="csv">csv</option>
+        <option value="pdf">pdf</option>
       </select>
 
       <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -772,6 +832,62 @@ export const NodeInspectorPanel: React.FC = () => {
     </>
   );
 
+  const renderTextExtractor = () => (
+    <>
+      <label className="block text-sm font-medium text-gray-700 mb-1">
+        Extraction Type
+      </label>
+      <select
+        value={extractionType}
+        onChange={(e) => setExtractionType(e.target.value)}
+        className="w-full border border-gray-300 rounded p-2 text-sm mb-3"
+        aria-label="Extraction type"
+      >
+        <option value="regex">regex</option>
+        <option value="between">between</option>
+      </select>
+
+      {extractionType === "regex" ? (
+        <>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Regex Pattern
+          </label>
+          <input
+            value={pattern}
+            onChange={(e) => setPattern(e.target.value)}
+            className="w-full border border-gray-300 rounded p-2 text-sm"
+            aria-label="Regex pattern"
+          />
+          <p className="text-xs text-gray-500 mt-1">
+            First capture group is returned; otherwise first match.
+          </p>
+        </>
+      ) : (
+        <>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Start Delimiter
+          </label>
+          <input
+            value={startDelimiter}
+            onChange={(e) => setStartDelimiter(e.target.value)}
+            className="w-full border border-gray-300 rounded p-2 text-sm mb-3"
+            aria-label="Start delimiter"
+          />
+
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            End Delimiter
+          </label>
+          <input
+            value={endDelimiter}
+            onChange={(e) => setEndDelimiter(e.target.value)}
+            className="w-full border border-gray-300 rounded p-2 text-sm"
+            aria-label="End delimiter"
+          />
+        </>
+      )}
+    </>
+  );
+
   const renderForm = () => {
     switch (selectedNode?.type) {
       case "prompt":
@@ -788,6 +904,8 @@ export const NodeInspectorPanel: React.FC = () => {
         return renderOutput();
       case "textFormatter":
         return renderTextFormatter();
+      case "textExtractor":
+        return renderTextExtractor();
       case "webSearch":
         return renderWebSearch();
       case "condition":
@@ -802,7 +920,7 @@ export const NodeInspectorPanel: React.FC = () => {
   };
 
   return (
-    <div className="bg-white border-l border-gray-200 p-4 w-80 overflow-y-auto">
+    <div className="bg-white border-l border-gray-200 p-4 w-full overflow-y-auto">
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-lg font-semibold text-gray-800">Inspector</h3>
         <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">

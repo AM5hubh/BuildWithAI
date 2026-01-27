@@ -3,7 +3,7 @@ import { blockRegistry } from "./registry";
 
 /**
  * FileReaderBlock - Read files from URL or local filesystem
- * Supports: text, json, csv parsing
+ * Supports: text, json, csv parsing, basic pdf text extraction
  */
 const fileReaderBlockDefinition: BlockDefinition = {
   type: "fileReader",
@@ -12,7 +12,7 @@ const fileReaderBlockDefinition: BlockDefinition = {
   defaultConfig: {
     sourceType: "url", // 'url', 'upload', 'input'
     url: "",
-    fileFormat: "text", // 'text', 'json', 'csv'
+    fileFormat: "text", // 'text', 'json', 'csv', 'pdf'
     encoding: "utf-8",
     csvDelimiter: ",",
     parseJson: true,
@@ -31,22 +31,29 @@ const fileReaderBlockDefinition: BlockDefinition = {
       let content: string;
 
       // Determine the source of file content
-      if (sourceType === "url" && url) {
-        content = await fetchFileFromUrl(url);
-      } else if (sourceType === "input" && input) {
-        // Use input as file content (could be a file path or content)
-        if (typeof input === "string") {
-          // If input looks like a URL, fetch it
-          if (input.startsWith("http://") || input.startsWith("https://")) {
-            content = await fetchFileFromUrl(input);
-          } else {
-            content = input;
-          }
-        } else {
-          content = JSON.stringify(input);
-        }
+      if (fileFormat === "pdf") {
+        const buffer = await resolveFileBuffer(sourceType, url, input);
+        content = await extractTextFromPdf(buffer);
       } else {
-        throw new Error("File source not specified. Provide URL or input.");
+        if (sourceType === "url" && url) {
+          content = await fetchFileFromUrl(url);
+        } else if (sourceType === "input" && input) {
+          // Use input as file content (could be a file path or content)
+          if (typeof input === "string") {
+            // If input looks like a URL, fetch it
+            if (input.startsWith("http://") || input.startsWith("https://")) {
+              content = await fetchFileFromUrl(input);
+            } else {
+              content = input;
+            }
+          } else {
+            content = JSON.stringify(input);
+          }
+        } else if (sourceType === "upload" && input) {
+          content = await bufferToText(await toArrayBuffer(input));
+        } else {
+          throw new Error("File source not specified. Provide URL or input.");
+        }
       }
 
       // Parse content based on file format
@@ -59,6 +66,9 @@ const fileReaderBlockDefinition: BlockDefinition = {
 
         case "csv":
           return parseCsv(content, csvDelimiter);
+
+        case "pdf":
+          return content; // already extracted text
 
         case "text":
         default:
@@ -99,6 +109,105 @@ async function fetchFileFromUrl(url: string): Promise<string> {
       `Failed to fetch file: ${error instanceof Error ? error.message : "Unknown error"}`,
     );
   }
+}
+
+async function fetchFileBuffer(url: string): Promise<ArrayBuffer> {
+  try {
+    const response = await fetch(url);
+
+    if (!response.ok) {
+      throw new Error(`HTTP error: ${response.status} ${response.statusText}`);
+    }
+
+    return await response.arrayBuffer();
+  } catch (error) {
+    throw new Error(
+      `Failed to fetch file: ${error instanceof Error ? error.message : "Unknown error"}`,
+    );
+  }
+}
+
+async function extractTextFromPdf(buffer: ArrayBuffer): Promise<string> {
+  try {
+    const pdfjs = await import("pdfjs-dist/legacy/build/pdf.mjs");
+    const workerSrc = (await import("pdfjs-dist/build/pdf.worker.min.mjs?url"))
+      .default;
+    pdfjs.GlobalWorkerOptions.workerSrc = workerSrc;
+
+    const loadingTask = pdfjs.getDocument({ data: buffer });
+    const pdf = await loadingTask.promise;
+    const pageTexts: string[] = [];
+
+    for (let i = 1; i <= pdf.numPages; i++) {
+      const page = await pdf.getPage(i);
+      const content = await page.getTextContent();
+      const textItems = content.items
+        .map((item: any) => ("str" in item ? item.str : ""))
+        .join(" ");
+      pageTexts.push(textItems);
+    }
+
+    return pageTexts.join("\n").trim();
+  } catch (error) {
+    throw new Error(
+      `PDF extraction failed: ${error instanceof Error ? error.message : "Unknown error"}`,
+    );
+  }
+}
+
+async function toArrayBuffer(input: any): Promise<ArrayBuffer> {
+  if (input instanceof ArrayBuffer) return input;
+  if (input instanceof Uint8Array) return input.buffer;
+  if (typeof Blob !== "undefined" && input instanceof Blob) {
+    return await input.arrayBuffer();
+  }
+  if (typeof File !== "undefined" && input instanceof File) {
+    return await input.arrayBuffer();
+  }
+  if (typeof input === "string") {
+    if (input.startsWith("data:")) {
+      const base64 = input.split(",")[1];
+      return Uint8Array.from(atob(base64), (c) => c.charCodeAt(0)).buffer;
+    }
+    // If it's a URL, fetch buffer
+    if (input.startsWith("http://") || input.startsWith("https://")) {
+      return await fetchFileBuffer(input);
+    }
+  }
+  throw new Error(
+    "Unsupported upload input. Provide a File, Blob, ArrayBuffer, or data URL.",
+  );
+}
+
+async function resolveFileBuffer(
+  sourceType: string,
+  url: string,
+  input: any,
+): Promise<ArrayBuffer> {
+  if (sourceType === "url" && url) {
+    return await fetchFileBuffer(url);
+  }
+  if (sourceType === "upload" && input) {
+    return await toArrayBuffer(input);
+  }
+  if (sourceType === "input" && input) {
+    if (typeof input === "string") {
+      if (input.startsWith("http://") || input.startsWith("https://")) {
+        return await fetchFileBuffer(input);
+      }
+      if (input.startsWith("data:")) {
+        return await toArrayBuffer(input);
+      }
+    }
+    if (input instanceof ArrayBuffer || input instanceof Uint8Array) {
+      return await toArrayBuffer(input);
+    }
+  }
+  throw new Error("File source not specified for PDF. Provide URL or upload.");
+}
+
+async function bufferToText(buffer: ArrayBuffer): Promise<string> {
+  return new TextDecoder().decode(buffer);
 }
 
 /**

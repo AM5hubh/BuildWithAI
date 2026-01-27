@@ -5,6 +5,7 @@ export { ToolNode } from "./ToolNode";
 export { MemoryNode } from "./MemoryNode";
 export { DataSourceNode } from "./DataSourceNode";
 export { TextFormatterNode } from "./TextFormatterNode";
+export { TextExtractorNode } from "./TextExtractorNode";
 export { WebSearchNode } from "./WebSearchNode";
 export { ConditionNode } from "./ConditionNode";
 export { FileReaderNode } from "./FileReaderNode";

@@ -16,11 +16,14 @@ export const Toolbar: React.FC = () => {
     setExecutionState,
     clearExecution,
     saveFlow,
+    setRightPanelTab,
   } = useFlowStore();
 
   const toolOptions = [
-    { label: "API Tool", type: "tool" as const },
+    // { label: "API Tool", type: "tool" as const },
+    { label: "API Endpoint", type: "tool" as const },
     { label: "Text Formatter", type: "textFormatter" as const },
+    { label: "Text Extractor", type: "textExtractor" as const },
     { label: "Web Search", type: "webSearch" as const },
     { label: "Condition", type: "condition" as const },
     { label: "File Reader", type: "fileReader" as const },
@@ -48,6 +51,9 @@ export const Toolbar: React.FC = () => {
 
     // Clear previous execution
     clearExecution();
+
+    // Switch to output tab so users see results/logs as they run.
+    setRightPanelTab("output");
 
     // Set running state
     setExecutionState({ isRunning: true });
@@ -172,12 +178,12 @@ export const Toolbar: React.FC = () => {
             >
               + Output
             </button>
-            <button
+            {/* <button
               onClick={handleAddTool}
               className="px-3 py-1.5 text-sm bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition"
             >
               + Tool
-            </button>
+            </button> */}
             <div className="flex items-center gap-2">
               <select
                 value={selectedTool}

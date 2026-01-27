@@ -1,4 +1,5 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { ReactFlowProvider } from "reactflow";
 import { Toolbar } from "./components/Toolbar";
 import { FlowCanvas } from "./components/FlowCanvas";
@@ -10,12 +11,22 @@ import { loadFlowLocally } from "./utils/flowPersistence";
 // Import blocks to ensure they are registered
 import "./blocks";
 
+interface User {
+  id: string;
+  name: string;
+  email: string;
+  picture?: string;
+}
+
 /**
  * Main App Component
  * Composable AI Studio - Build AI applications visually
  */
 function App() {
+  const navigate = useNavigate();
   const { setNodes, setEdges, addNode, fetchModels } = useFlowStore();
+  const [user, setUser] = useState<User | null>(null);
+  const [showUserMenu, setShowUserMenu] = useState(false);
 
   // Initialize with a default example flow or load from localStorage
   useEffect(() => {
@@ -79,8 +90,20 @@ function App() {
     // Fetch available models from backend
     fetchModels();
 
+    // Load user info
+    const userData = localStorage.getItem("user");
+    if (userData) {
+      setUser(JSON.parse(userData));
+    }
+
     initializeFlow();
   }, [setNodes, setEdges, addNode, fetchModels]);
+
+  const handleLogout = () => {
+    localStorage.removeItem("authToken");
+    localStorage.removeItem("user");
+    navigate("/login");
+  };
 
   return (
     <ReactFlowProvider>
@@ -97,6 +120,58 @@ function App() {
                 Build AI applications visually with drag-and-drop blocks
               </div>
               <SyncIndicator />
+
+              {/* User Menu */}
+              {user && (
+                <div className="relative">
+                  <button
+                    onClick={() => setShowUserMenu(!showUserMenu)}
+                    className="flex items-center gap-2 px-3 py-2 rounded-lg bg-blue-700 bg-opacity-50 hover:bg-opacity-70 transition-all"
+                  >
+                    {user.picture && (
+                      <img
+                        src={user.picture}
+                        alt={user.name}
+                        className="w-6 h-6 rounded-full"
+                      />
+                    )}
+                    <span className="text-sm font-medium">{user.name}</span>
+                    <svg
+                      className={`w-4 h-4 transition-transform ${
+                        showUserMenu ? "rotate-180" : ""
+                      }`}
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M19 14l-7 7m0 0l-7-7m7 7V3"
+                      />
+                    </svg>
+                  </button>
+
+                  {/* Dropdown Menu */}
+                  {showUserMenu && (
+                    <div className="absolute right-0 mt-2 w-48 bg-gray-800 rounded-lg shadow-xl border border-gray-700 z-50">
+                      <div className="px-4 py-3 border-b border-gray-700">
+                        <p className="text-sm text-gray-300">{user.email}</p>
+                      </div>
+                      <button
+                        onClick={() => {
+                          handleLogout();
+                          setShowUserMenu(false);
+                        }}
+                        className="w-full text-left px-4 py-2 text-sm text-red-400 hover:bg-gray-700 transition-colors"
+                      >
+                        Logout
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           </div>
         </header>

@@ -1,6 +1,94 @@
 import React from "react";
 import { useFlowStore } from "../store/flowStore";
 
+type DisplayFormat = "text" | "json" | "markdown";
+
+const tryParseJson = (value: any) => {
+  if (typeof value !== "string") return value;
+  try {
+    return JSON.parse(value);
+  } catch {
+    return value;
+  }
+};
+
+const renderMarkdown = (text: string) => {
+  // Minimal, safe markdown rendering without external deps.
+  const escapeHtml = (val: string) =>
+    val.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+
+  // Handle code fences first to avoid double-processing inside.
+  let html = escapeHtml(text);
+  html = html.replace(
+    /```([\s\S]*?)```/g,
+    (_match, code) =>
+      `<pre class="bg-gray-900 text-gray-100 p-3 rounded border border-gray-800 overflow-auto text-xs"><code>${code
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")}</code></pre>`,
+  );
+
+  // Headings
+  html = html.replace(
+    /^### (.*)$/gm,
+    '<h3 class="text-sm font-semibold mt-2 mb-1">$1</h3>',
+  );
+  html = html.replace(
+    /^## (.*)$/gm,
+    '<h2 class="text-base font-semibold mt-3 mb-1">$1</h2>',
+  );
+  html = html.replace(
+    /^# (.*)$/gm,
+    '<h1 class="text-lg font-semibold mt-4 mb-2">$1</h1>',
+  );
+
+  // Bold / italic / inline code
+  html = html.replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>");
+  html = html.replace(/_(.*?)_/g, "<em>$1</em>");
+  html = html.replace(
+    /`([^`]+)`/g,
+    '<code class="px-1 bg-gray-100 rounded text-xs">$1</code>',
+  );
+
+  // Line breaks
+  html = html.replace(/\n/g, "<br/>");
+
+  return (
+    <div
+      className="prose prose-sm max-w-none text-gray-800"
+      dangerouslySetInnerHTML={{ __html: html }}
+    />
+  );
+};
+
+const renderFormattedResult = (result: any, format: DisplayFormat) => {
+  if (format === "json") {
+    const parsed = tryParseJson(result);
+    const display =
+      typeof parsed === "string" ? parsed : JSON.stringify(parsed, null, 2);
+    return (
+      <pre className="text-xs font-mono text-gray-800 bg-gray-100 border border-gray-200 rounded p-2 whitespace-pre-wrap break-words overflow-auto">
+        {display}
+      </pre>
+    );
+  }
+
+  if (format === "markdown") {
+    const asText =
+      typeof result === "string" ? result : JSON.stringify(result, null, 2);
+    return renderMarkdown(asText);
+  }
+
+  // Default text
+  const asText =
+    typeof result === "string" ? result : JSON.stringify(result, null, 2);
+  return (
+    <div className="text-sm text-gray-800 whitespace-pre-wrap break-words">
+      {asText}
+    </div>
+  );
+};
+
 /**
  * OutputPanel Component
  * Displays execution results, loading states, and errors
@@ -14,7 +102,7 @@ export const OutputPanel: React.FC = () => {
   const hasResults = Object.keys(results).length > 0;
 
   return (
-    <div className="bg-white border-l border-gray-200 p-4 w-80 overflow-y-auto">
+    <div className="bg-white border-l border-gray-200 p-4 w-full overflow-y-auto">
       <h3 className="text-lg font-semibold text-gray-800 mb-4">Output Panel</h3>
 
       {/* Loading State */}
@@ -54,21 +142,20 @@ export const OutputPanel: React.FC = () => {
           {/* Show output block results prominently */}
           {outputNodes.map((node) => {
             const result = results[node.id];
-            if (!result) return null;
+            if (result === undefined || result === null) return null;
+
+            const format: DisplayFormat =
+              (node.data?.config?.displayFormat as DisplayFormat) || "text";
 
             return (
               <div
                 key={node.id}
                 className="p-3 bg-green-50 border border-green-200 rounded"
               >
-                <div className="text-xs font-semibold text-green-700 mb-1">
-                  Final Output:
+                <div className="text-xs font-semibold text-green-700 mb-2">
+                  Final Output ({format}):
                 </div>
-                <div className="text-sm text-gray-800 whitespace-pre-wrap break-words">
-                  {typeof result === "string"
-                    ? result
-                    : JSON.stringify(result, null, 2)}
-                </div>
+                {renderFormattedResult(result, format)}
               </div>
             );
           })}
