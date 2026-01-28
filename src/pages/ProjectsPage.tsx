@@ -91,17 +91,20 @@ export default function ProjectsPage() {
       setCreating(true);
       const token = localStorage.getItem("authToken");
 
-      const response = await fetch("http://localhost:3001/api/projects", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
+      const response = await fetch(
+        `${import.meta.env.VITE_API_URL || "http://localhost:3001"}/api/projects`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            name: newProjectName,
+            description: newProjectDescription,
+          }),
         },
-        body: JSON.stringify({
-          name: newProjectName,
-          description: newProjectDescription,
-        }),
-      });
+      );
 
       if (!response.ok) {
         throw new Error("Failed to create project");
@@ -131,7 +134,7 @@ export default function ProjectsPage() {
       const token = localStorage.getItem("authToken");
 
       const response = await fetch(
-        `http://localhost:3001/api/projects/${projectId}`,
+        `${import.meta.env.VITE_API_URL || "http://localhost:3001"}/api/projects/${projectId}`,
         {
           method: "DELETE",
           headers: {

@@ -25,11 +25,14 @@ export default function ProtectedRoute({ children }: ProtectedRouteProps) {
 
       try {
         // Verify token with backend
-        const response = await fetch("http://localhost:3001/auth/verify", {
-          headers: {
-            Authorization: `Bearer ${token}`,
+        const response = await fetch(
+          `${import.meta.env.VITE_API_URL || "http://localhost:3001"}/auth/verify`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
           },
-        });
+        );
 
         if (response.ok) {
           setIsAuthenticated(true);
