@@ -38,8 +38,15 @@ const webSearchBlockDefinition: BlockDefinition = {
 
       if (searchEngine === "duckduckgo") {
         results = await searchDuckDuckGo(query, maxResults);
-      } else if (searchEngine === "brave" && apiKey) {
+      } else if (searchEngine === "brave") {
+        if (!apiKey) {
+          throw new Error("Brave search requires an API key");
+        }
         results = await searchBrave(query, apiKey, maxResults, safeSearch);
+      } else if (searchEngine === "custom") {
+        throw new Error(
+          "Custom search engine not implemented. Please use DuckDuckGo or Brave.",
+        );
       } else {
         throw new Error(`Unsupported search engine: ${searchEngine}`);
       }

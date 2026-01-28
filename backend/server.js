@@ -1,6 +1,6 @@
 /**
  * Backend Express Server
- * Handles AI execution requests and flow persistence
+ * Handles AI execution requests, flow persistence, and authentication
  */
 import express, { json } from "express";
 import cors from "cors";
@@ -9,6 +9,10 @@ import dotenv from "dotenv";
 import fs from "fs/promises";
 import path from "path";
 import { fileURLToPath } from "url";
+import { connectDB } from "./db/connect.js";
+import authRoutes from "./routes/auth.js";
+import projectsRoutes from "./routes/projects.js";
+import { authMiddleware } from "./middleware/auth.js";
 
 // Load environment variables from .env file
 dotenv.config();
@@ -22,6 +26,17 @@ const PORT = process.env.PORT || 3001;
 // Middleware
 app.use(cors());
 app.use(json());
+
+// Initialize database and routes
+(async () => {
+  try {
+    await connectDB();
+    app.use("/auth", authRoutes);
+    app.use("/api/projects", projectsRoutes);
+  } catch (error) {
+    console.error("Failed to initialize database:", error);
+  }
+})();
 
 // Ensure flows directory exists
 (async () => {

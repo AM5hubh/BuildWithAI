@@ -18,6 +18,7 @@ export type BlockType =
   | "memory"
   | "datasource"
   | "textFormatter"
+  | "textExtractor"
   | "webSearch"
   | "condition"
   | "fileReader";
@@ -48,6 +49,8 @@ export interface BlockConfig {
   // PromptBlock config
   template?: string;
   variables?: Record<string, string>;
+  includeInput?: boolean;
+  inputPlaceholder?: string;
 
   // ModelBlock config
   model?: string;
@@ -79,6 +82,12 @@ export interface BlockConfig {
   separator?: string;
   textTemplate?: string;
 
+  // TextExtractorBlock config
+  extractionType?: "regex" | "between";
+  pattern?: string;
+  startDelimiter?: string;
+  endDelimiter?: string;
+
   // WebSearchBlock config
   searchEngine?: "duckduckgo" | "brave" | "custom";
   apiKey?: string;
@@ -94,7 +103,7 @@ export interface BlockConfig {
   caseSensitive?: boolean;
 
   // FileReaderBlock config
-  fileFormat?: "text" | "json" | "csv";
+  fileFormat?: "text" | "json" | "csv" | "pdf";
   encoding?: string;
   csvDelimiter?: string;
   parseJson?: boolean;

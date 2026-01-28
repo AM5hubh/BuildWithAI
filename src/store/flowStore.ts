@@ -31,6 +31,11 @@ interface FlowStore {
   // Execution state
   executionState: FlowExecutionState;
 
+  // UI state
+  rightPanelTab: "inspector" | "output";
+  rightPanelWidth: number;
+  rightPanelVisible: boolean;
+
   // Actions
   setNodes: (nodes: Node[]) => void;
   setEdges: (edges: Edge[]) => void;
@@ -56,6 +61,10 @@ interface FlowStore {
   // Execution actions
   setExecutionState: (state: Partial<FlowExecutionState>) => void;
   clearExecution: () => void;
+  setRightPanelTab: (tab: "inspector" | "output") => void;
+  setRightPanelWidth: (width: number) => void;
+  setRightPanelVisible: (visible: boolean) => void;
+  toggleRightPanelVisible: () => void;
 
   // Flow save/load
   saveFlow: () => Flow;
@@ -80,6 +89,10 @@ export const useFlowStore = create<FlowStore>((set, get) => ({
     results: {},
     errors: {},
   },
+
+  rightPanelTab: "inspector",
+  rightPanelWidth: 380,
+  rightPanelVisible: true,
 
   setModels: (models) => set({ models }),
   setLoadingModels: (loading) => set({ loadingModels: loading }),
@@ -124,7 +137,12 @@ export const useFlowStore = create<FlowStore>((set, get) => ({
     );
   },
 
-  setSelectedNodeId: (nodeId) => set({ selectedNodeId: nodeId }),
+  setSelectedNodeId: (nodeId: string | null) =>
+    set((state) => ({
+      selectedNodeId: nodeId,
+      // Auto-focus inspector when selecting a node so users see its config immediately.
+      rightPanelTab: nodeId ? "inspector" : state.rightPanelTab,
+    })),
 
   setSelectedEdge: (edgeId, pos) =>
     set({ selectedEdgeId: edgeId, selectedEdgePos: pos }),
@@ -267,6 +285,15 @@ export const useFlowStore = create<FlowStore>((set, get) => ({
       executionState: { ...get().executionState, ...state },
     });
   },
+
+  setRightPanelTab: (tab) => set({ rightPanelTab: tab }),
+  setRightPanelWidth: (width) => {
+    const clamped = Math.max(260, Math.min(width, 720));
+    set({ rightPanelWidth: clamped });
+  },
+  setRightPanelVisible: (visible) => set({ rightPanelVisible: visible }),
+  toggleRightPanelVisible: () =>
+    set((state) => ({ rightPanelVisible: !state.rightPanelVisible })),
 
   clearExecution: () => {
     set({

@@ -1,4 +1,5 @@
 import React from "react";
+import { useNavigate } from "react-router-dom";
 import { useFlowStore } from "../store/flowStore";
 import { executionEngine } from "../engine/executionEngine";
 import { downloadFlow } from "../utils/flowSerializer";
@@ -9,6 +10,7 @@ import { detectCycle, describeCycle } from "../utils/cycleDetector";
  * Provides controls for running, saving, and managing the flow
  */
 export const Toolbar: React.FC = () => {
+  const navigate = useNavigate();
   const {
     nodes,
     edges,
@@ -16,11 +18,14 @@ export const Toolbar: React.FC = () => {
     setExecutionState,
     clearExecution,
     saveFlow,
+    setRightPanelTab,
   } = useFlowStore();
 
   const toolOptions = [
-    { label: "API Tool", type: "tool" as const },
+    // { label: "API Tool", type: "tool" as const },
+    { label: "API Endpoint", type: "tool" as const },
     { label: "Text Formatter", type: "textFormatter" as const },
+    { label: "Text Extractor", type: "textExtractor" as const },
     { label: "Web Search", type: "webSearch" as const },
     { label: "Condition", type: "condition" as const },
     { label: "File Reader", type: "fileReader" as const },
@@ -48,6 +53,9 @@ export const Toolbar: React.FC = () => {
 
     // Clear previous execution
     clearExecution();
+
+    // Switch to output tab so users see results/logs as they run.
+    setRightPanelTab("output");
 
     // Set running state
     setExecutionState({ isRunning: true });
@@ -147,7 +155,14 @@ export const Toolbar: React.FC = () => {
   return (
     <div className="bg-white border-b border-gray-200 px-4 py-3">
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => navigate("/projects")}
+            className="px-3 py-1.5 text-sm bg-gray-200 text-gray-700 rounded hover:bg-gray-300 transition flex items-center gap-1"
+            title="Back to Projects"
+          >
+            ← Projects
+          </button>
           <h2 className="text-lg font-semibold text-gray-800">Flow Builder</h2>
         </div>
 
@@ -172,12 +187,12 @@ export const Toolbar: React.FC = () => {
             >
               + Output
             </button>
-            <button
+            {/* <button
               onClick={handleAddTool}
               className="px-3 py-1.5 text-sm bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition"
             >
               + Tool
-            </button>
+            </button> */}
             <div className="flex items-center gap-2">
               <select
                 value={selectedTool}
