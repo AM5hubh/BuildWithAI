@@ -8,15 +8,15 @@ import {
   applyEdgeChanges,
 } from "reactflow";
 import { Flow, FlowExecutionState } from "../types/Flow";
-import { saveFlowLocally, syncFlowToBackend } from "../utils/flowPersistence";
 import type { ModelInfo } from "../utils/openrouterModels";
 
 /**
  * Central state store using Zustand
- * Manages flow state, nodes, edges, and execution state with hybrid persistence
+ * Manages flow state, nodes, edges, and execution state with database persistence
  */
 interface FlowStore {
   // Flow state
+  projectId: string | null;
   nodes: Node[];
   edges: Edge[];
   selectedNodeId: string | null;
@@ -37,6 +37,8 @@ interface FlowStore {
   rightPanelVisible: boolean;
 
   // Actions
+  setProjectId: (projectId: string | null) => void;
+  saveFlowToDatabase: () => Promise<void>;
   setNodes: (nodes: Node[]) => void;
   setEdges: (edges: Edge[]) => void;
   onNodesChange: (changes: any) => void;
@@ -73,7 +75,12 @@ interface FlowStore {
 
 let nodeIdCounter = 1;
 
+// Save to database with debounce
+let saveTimeout: ReturnType<typeof setTimeout> | null = null;
+const SAVE_DELAY = 2000; // 2 second debounce
+
 export const useFlowStore = create<FlowStore>((set, get) => ({
+  projectId: null,
   nodes: [],
   edges: [],
   selectedNodeId: null,
@@ -93,6 +100,46 @@ export const useFlowStore = create<FlowStore>((set, get) => ({
   rightPanelTab: "inspector",
   rightPanelWidth: 380,
   rightPanelVisible: true,
+
+  setProjectId: (projectId) => set({ projectId }),
+
+  saveFlowToDatabase: async () => {
+    const { projectId, nodes, edges } = get();
+    if (!projectId) return;
+
+    // Clear any existing timeout
+    if (saveTimeout) {
+      clearTimeout(saveTimeout);
+    }
+
+    // Debounce the save
+    saveTimeout = setTimeout(async () => {
+      try {
+        set({ isSyncing: true });
+        const token = localStorage.getItem("authToken");
+        const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:3001";
+
+        const response = await fetch(`${apiUrl}/api/flows`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ projectId, nodes, edges }),
+        });
+
+        if (!response.ok) {
+          throw new Error("Failed to save flow");
+        }
+
+        console.log("✓ Flow saved to database");
+      } catch (error) {
+        console.error("Error saving flow:", error);
+      } finally {
+        set({ isSyncing: false });
+      }
+    }, SAVE_DELAY);
+  },
 
   setModels: (models) => set({ models }),
   setLoadingModels: (loading) => set({ loadingModels: loading }),
@@ -115,26 +162,14 @@ export const useFlowStore = create<FlowStore>((set, get) => ({
 
   setNodes: (nodes) => {
     set({ nodes });
-    // Auto-save to localStorage and sync to backend
-    saveFlowLocally(nodes, get().edges);
-    syncFlowToBackend(
-      nodes,
-      get().edges,
-      () => set({ isSyncing: true }),
-      () => set({ isSyncing: false }),
-    );
+    // Auto-save to database
+    get().saveFlowToDatabase();
   },
 
   setEdges: (edges) => {
     set({ edges });
-    // Auto-save to localStorage and sync to backend
-    saveFlowLocally(get().nodes, edges);
-    syncFlowToBackend(
-      get().nodes,
-      edges,
-      () => set({ isSyncing: true }),
-      () => set({ isSyncing: false }),
-    );
+    // Auto-save to database
+    get().saveFlowToDatabase();
   },
 
   setSelectedNodeId: (nodeId: string | null) =>
@@ -155,39 +190,21 @@ export const useFlowStore = create<FlowStore>((set, get) => ({
       selectedEdgePos: null,
     });
     // Auto-save
-    saveFlowLocally(get().nodes, newEdges);
-    syncFlowToBackend(
-      get().nodes,
-      newEdges,
-      () => set({ isSyncing: true }),
-      () => set({ isSyncing: false }),
-    );
+    get().saveFlowToDatabase();
   },
 
   onNodesChange: (changes) => {
     const newNodes = applyNodeChanges(changes, get().nodes);
     set({ nodes: newNodes });
     // Auto-save
-    saveFlowLocally(newNodes, get().edges);
-    syncFlowToBackend(
-      newNodes,
-      get().edges,
-      () => set({ isSyncing: true }),
-      () => set({ isSyncing: false }),
-    );
+    get().saveFlowToDatabase();
   },
 
   onEdgesChange: (changes) => {
     const newEdges = applyEdgeChanges(changes, get().edges);
     set({ edges: newEdges });
     // Auto-save
-    saveFlowLocally(get().nodes, newEdges);
-    syncFlowToBackend(
-      get().nodes,
-      newEdges,
-      () => set({ isSyncing: true }),
-      () => set({ isSyncing: false }),
-    );
+    get().saveFlowToDatabase();
   },
 
   onConnect: (connection) => {
@@ -210,13 +227,7 @@ export const useFlowStore = create<FlowStore>((set, get) => ({
     const newNodes = [...get().nodes, newNode];
     set({ nodes: newNodes });
     // Auto-save
-    saveFlowLocally(newNodes, get().edges);
-    syncFlowToBackend(
-      newNodes,
-      get().edges,
-      () => set({ isSyncing: true }),
-      () => set({ isSyncing: false }),
-    );
+    get().saveFlowToDatabase();
   },
 
   deleteNode: (nodeId) => {
@@ -231,13 +242,7 @@ export const useFlowStore = create<FlowStore>((set, get) => ({
         get().selectedNodeId === nodeId ? null : get().selectedNodeId,
     });
     // Auto-save
-    saveFlowLocally(newNodes, newEdges);
-    syncFlowToBackend(
-      newNodes,
-      newEdges,
-      () => set({ isSyncing: true }),
-      () => set({ isSyncing: false }),
-    );
+    get().saveFlowToDatabase();
   },
 
   duplicateNode: (nodeId) => {
@@ -256,13 +261,7 @@ export const useFlowStore = create<FlowStore>((set, get) => ({
     const newNodes = [...get().nodes, newNode];
     set({ nodes: newNodes });
     // Auto-save
-    saveFlowLocally(newNodes, get().edges);
-    syncFlowToBackend(
-      newNodes,
-      get().edges,
-      () => set({ isSyncing: true }),
-      () => set({ isSyncing: false }),
-    );
+    get().saveFlowToDatabase();
   },
 
   updateNodeData: (nodeId, data) => {
@@ -271,13 +270,7 @@ export const useFlowStore = create<FlowStore>((set, get) => ({
     );
     set({ nodes: newNodes });
     // Auto-save
-    saveFlowLocally(newNodes, get().edges);
-    syncFlowToBackend(
-      newNodes,
-      get().edges,
-      () => set({ isSyncing: true }),
-      () => set({ isSyncing: false }),
-    );
+    get().saveFlowToDatabase();
   },
 
   setExecutionState: (state) => {

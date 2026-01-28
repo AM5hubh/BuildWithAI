@@ -2,6 +2,12 @@ import mongoose from "mongoose";
 
 const flowSchema = new mongoose.Schema(
   {
+    projectId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Project",
+      required: true,
+      index: true,
+    },
     userId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
@@ -16,25 +22,14 @@ const flowSchema = new mongoose.Schema(
       type: String,
       default: "",
     },
-    nodes: [
-      {
-        id: String,
-        type: String,
-        position: {
-          x: Number,
-          y: Number,
-        },
-        data: mongoose.Schema.Types.Mixed,
-      },
-    ],
-    edges: [
-      {
-        id: String,
-        source: String,
-        target: String,
-        animated: Boolean,
-      },
-    ],
+    nodes: {
+      type: mongoose.Schema.Types.Mixed,
+      default: [],
+    },
+    edges: {
+      type: mongoose.Schema.Types.Mixed,
+      default: [],
+    },
     isPublic: {
       type: Boolean,
       default: false,

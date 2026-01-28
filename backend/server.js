@@ -6,19 +6,14 @@ import express, { json } from "express";
 import cors from "cors";
 import OpenAI from "openai";
 import dotenv from "dotenv";
-import fs from "fs/promises";
-import path from "path";
-import { fileURLToPath } from "url";
 import { connectDB } from "./db/connect.js";
 import authRoutes from "./routes/auth.js";
 import projectsRoutes from "./routes/projects.js";
+import flowRoutes from "./routes/flowRoutes.js";
 import { authMiddleware } from "./middleware/auth.js";
 
 // Load environment variables from .env file
 dotenv.config();
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const FLOWS_DIR = path.join(__dirname, "../flows");
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -33,17 +28,9 @@ app.use(json());
     await connectDB();
     app.use("/auth", authRoutes);
     app.use("/api/projects", projectsRoutes);
+    app.use("/api", authMiddleware, flowRoutes);
   } catch (error) {
     console.error("Failed to initialize database:", error);
-  }
-})();
-
-// Ensure flows directory exists
-(async () => {
-  try {
-    await fs.mkdir(FLOWS_DIR, { recursive: true });
-  } catch (error) {
-    console.error("Failed to create flows directory:", error);
   }
 })();
 
@@ -235,120 +222,6 @@ app.get("/api/models", async (req, res) => {
         paid: paidFallback.length,
       },
       fallback: true,
-    });
-  }
-});
-
-/**
- * Save flow endpoint
- * POST /api/flows/save
- */
-app.post("/api/flows/save", async (req, res) => {
-  try {
-    const { id, name, nodes, edges, createdAt, updatedAt } = req.body;
-
-    if (!id) {
-      return res.status(400).json({ error: "Flow ID is required" });
-    }
-
-    const flowPath = path.join(FLOWS_DIR, `${id}.json`);
-    const flowData = {
-      id,
-      name: name || "My Flow",
-      nodes,
-      edges,
-      createdAt: createdAt || Date.now(),
-      updatedAt: updatedAt || Date.now(),
-    };
-
-    await fs.writeFile(flowPath, JSON.stringify(flowData, null, 2), "utf-8");
-
-    console.log(`✓ Flow saved: ${id}`);
-    res.json({
-      success: true,
-      id,
-      message: "Flow saved successfully",
-    });
-  } catch (error) {
-    console.error("Flow save error:", error);
-    res.status(500).json({
-      error: "Failed to save flow",
-      message: error.message,
-    });
-  }
-});
-
-/**
- * Load flow endpoint
- * GET /api/flows/:id
- */
-app.get("/api/flows/:id", async (req, res) => {
-  try {
-    const { id } = req.params;
-    const flowPath = path.join(FLOWS_DIR, `${id}.json`);
-
-    const data = await fs.readFile(flowPath, "utf-8");
-    const flow = JSON.parse(data);
-
-    console.log(`✓ Flow loaded: ${id}`);
-    res.json(flow);
-  } catch (error) {
-    console.error("Flow load error:", error);
-    res.status(404).json({
-      error: "Flow not found",
-      message: error.message,
-    });
-  }
-});
-
-/**
- * List flows endpoint
- * GET /api/flows
- */
-app.get("/api/flows", async (req, res) => {
-  try {
-    const files = await fs.readdir(FLOWS_DIR);
-    const jsonFiles = files.filter((f) => f.endsWith(".json"));
-
-    const flows = await Promise.all(
-      jsonFiles.map(async (file) => {
-        const data = await fs.readFile(path.join(FLOWS_DIR, file), "utf-8");
-        return JSON.parse(data);
-      }),
-    );
-
-    res.json({ flows, count: flows.length });
-  } catch (error) {
-    console.error("Flows list error:", error);
-    res.status(500).json({
-      error: "Failed to list flows",
-      message: error.message,
-    });
-  }
-});
-
-/**
- * Delete flow endpoint
- * DELETE /api/flows/:id
- */
-app.delete("/api/flows/:id", async (req, res) => {
-  try {
-    const { id } = req.params;
-    const flowPath = path.join(FLOWS_DIR, `${id}.json`);
-
-    await fs.unlink(flowPath);
-
-    console.log(`✓ Flow deleted: ${id}`);
-    res.json({
-      success: true,
-      id,
-      message: "Flow deleted successfully",
-    });
-  } catch (error) {
-    console.error("Flow delete error:", error);
-    res.status(500).json({
-      error: "Failed to delete flow",
-      message: error.message,
     });
   }
 });
