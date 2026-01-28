@@ -157,7 +157,7 @@ async function extractTextFromPdf(buffer: ArrayBuffer): Promise<string> {
 
 async function toArrayBuffer(input: any): Promise<ArrayBuffer> {
   if (input instanceof ArrayBuffer) return input;
-  if (input instanceof Uint8Array) return input.buffer;
+  if (input instanceof Uint8Array) return input.buffer as ArrayBuffer;
   if (typeof Blob !== "undefined" && input instanceof Blob) {
     return await input.arrayBuffer();
   }
