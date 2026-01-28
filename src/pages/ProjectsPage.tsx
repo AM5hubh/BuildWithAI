@@ -56,11 +56,14 @@ export default function ProjectsPage() {
       setLoading(true);
       const token = localStorage.getItem("authToken");
 
-      const response = await fetch("http://localhost:3001/api/projects", {
-        headers: {
-          Authorization: `Bearer ${token}`,
+      const response = await fetch(
+        `${import.meta.env.VITE_API_URL || "http://localhost:3001"}/api/projects`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
         },
-      });
+      );
 
       if (!response.ok) {
         throw new Error("Failed to load projects");
