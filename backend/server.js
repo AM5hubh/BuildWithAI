@@ -11,6 +11,7 @@ import path from "path";
 import { fileURLToPath } from "url";
 import { connectDB } from "./db/connect.js";
 import authRoutes from "./routes/auth.js";
+import projectsRoutes from "./routes/projects.js";
 import { authMiddleware } from "./middleware/auth.js";
 
 // Load environment variables from .env file
@@ -31,6 +32,7 @@ app.use(json());
   try {
     await connectDB();
     app.use("/auth", authRoutes);
+    app.use("/api/projects", projectsRoutes);
   } catch (error) {
     console.error("Failed to initialize database:", error);
   }

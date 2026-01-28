@@ -26,6 +26,12 @@ const userSchema = new mongoose.Schema(
         ref: "Flow",
       },
     ],
+    projects: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Project",
+      },
+    ],
     preferences: {
       defaultModel: {
         type: String,

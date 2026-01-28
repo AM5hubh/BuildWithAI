@@ -1,4 +1,5 @@
 import React from "react";
+import { useNavigate } from "react-router-dom";
 import { useFlowStore } from "../store/flowStore";
 import { executionEngine } from "../engine/executionEngine";
 import { downloadFlow } from "../utils/flowSerializer";
@@ -9,6 +10,7 @@ import { detectCycle, describeCycle } from "../utils/cycleDetector";
  * Provides controls for running, saving, and managing the flow
  */
 export const Toolbar: React.FC = () => {
+  const navigate = useNavigate();
   const {
     nodes,
     edges,
@@ -153,7 +155,14 @@ export const Toolbar: React.FC = () => {
   return (
     <div className="bg-white border-b border-gray-200 px-4 py-3">
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => navigate("/projects")}
+            className="px-3 py-1.5 text-sm bg-gray-200 text-gray-700 rounded hover:bg-gray-300 transition flex items-center gap-1"
+            title="Back to Projects"
+          >
+            ← Projects
+          </button>
           <h2 className="text-lg font-semibold text-gray-800">Flow Builder</h2>
         </div>
 

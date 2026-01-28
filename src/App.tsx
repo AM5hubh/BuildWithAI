@@ -105,17 +105,36 @@ function App() {
     navigate("/login");
   };
 
-  
-
   return (
     <ReactFlowProvider>
       <div className="h-screen flex flex-col">
         {/* Header with Sync Indicator */}
         <header className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-6 py-4 shadow-lg">
           <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-2xl font-bold">BuildWithAi</h1>
-              <p className="text-sm text-blue-100">Composable AI Studio</p>
+            <div className="flex items-center gap-4">
+              <button
+                onClick={() => navigate("/projects")}
+                className="p-2 hover:bg-blue-700 rounded-lg transition-colors"
+                title="Back to Projects"
+              >
+                <svg
+                  className="w-5 h-5"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M15 19l-7-7 7-7"
+                  />
+                </svg>
+              </button>
+              <div>
+                <h1 className="text-2xl font-bold">BuildWithAi</h1>
+                <p className="text-sm text-blue-100">Composable AI Studio</p>
+              </div>
             </div>
             <div className="flex items-center gap-6">
               <div className="text-xs text-blue-100">

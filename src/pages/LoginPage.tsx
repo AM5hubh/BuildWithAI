@@ -13,7 +13,7 @@ export default function LoginPage() {
     // Check if already logged in
     const token = localStorage.getItem("authToken");
     if (token) {
-      navigate("/");
+      navigate("/projects");
     }
   }, [navigate]);
 
@@ -50,8 +50,8 @@ export default function LoginPage() {
         }),
       );
 
-      // Redirect to main app
-      navigate("/");
+      // Redirect to projects page
+      navigate("/projects");
     } catch (error) {
       console.error("Login error:", error);
       alert("Login failed. Please try again.");
