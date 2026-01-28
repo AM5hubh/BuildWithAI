@@ -1,5 +1,4 @@
 import React from "react";
-import { useNavigate } from "react-router-dom";
 import { useFlowStore } from "../store/flowStore";
 import { executionEngine } from "../engine/executionEngine";
 import { downloadFlow } from "../utils/flowSerializer";
@@ -10,7 +9,6 @@ import { detectCycle, describeCycle } from "../utils/cycleDetector";
  * Provides controls for running, saving, and managing the flow
  */
 export const Toolbar: React.FC = () => {
-  const navigate = useNavigate();
   const {
     nodes,
     edges,
@@ -19,6 +17,7 @@ export const Toolbar: React.FC = () => {
     clearExecution,
     saveFlow,
     setRightPanelTab,
+    autoLayout,
   } = useFlowStore();
 
   const toolOptions = [
@@ -152,13 +151,6 @@ export const Toolbar: React.FC = () => {
     <div className="bg-white border-b border-gray-200 px-4 py-3">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <button
-            onClick={() => navigate("/projects")}
-            className="px-3 py-1.5 text-sm bg-gray-200 text-gray-700 rounded hover:bg-gray-300 transition flex items-center gap-1"
-            title="Back to Projects"
-          >
-            ← Projects
-          </button>
           <h2 className="text-lg font-semibold text-gray-800">Flow Builder</h2>
         </div>
 
@@ -239,6 +231,27 @@ export const Toolbar: React.FC = () => {
             className="px-4 py-1.5 text-sm bg-gray-600 text-white rounded hover:bg-gray-700 transition"
           >
             💾 Save
+          </button>
+
+          <button
+            onClick={autoLayout}
+            className="px-4 py-1.5 text-sm bg-indigo-600 text-white rounded hover:bg-indigo-700 transition flex items-center gap-2"
+            title="Auto-arrange all nodes"
+          >
+            <svg
+              className="w-4 h-4"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M4 5a1 1 0 011-1h4a1 1 0 011 1v7a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM14 5a1 1 0 011-1h4a1 1 0 011 1v7a1 1 0 01-1 1h-4a1 1 0 01-1-1V5zM4 16a1 1 0 011-1h4a1 1 0 011 1v3a1 1 0 01-1 1H5a1 1 0 01-1-1v-3zM14 16a1 1 0 011-1h4a1 1 0 011 1v3a1 1 0 01-1 1h-4a1 1 0 01-1-1v-3z"
+              />
+            </svg>
+            Layout
           </button>
 
           <button

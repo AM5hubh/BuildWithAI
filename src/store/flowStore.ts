@@ -23,6 +23,7 @@ interface FlowStore {
   selectedEdgeId: string | null;
   selectedEdgePos: { x: number; y: number } | null;
   isSyncing: boolean;
+  syncError: string | null;
 
   // Models state
   models: ModelInfo[];
@@ -49,6 +50,7 @@ interface FlowStore {
   deleteEdge: (edgeId: string) => void;
   duplicateNode: (nodeId: string) => void;
   updateNodeData: (nodeId: string, data: any) => void;
+  autoLayout: () => void;
   setSelectedNodeId: (nodeId: string | null) => void;
   setSelectedEdge: (
     edgeId: string | null,
@@ -87,6 +89,7 @@ export const useFlowStore = create<FlowStore>((set, get) => ({
   selectedEdgeId: null,
   selectedEdgePos: null,
   isSyncing: false,
+  syncError: null,
   models: [],
   loadingModels: false,
 
@@ -115,7 +118,7 @@ export const useFlowStore = create<FlowStore>((set, get) => ({
     // Debounce the save
     saveTimeout = setTimeout(async () => {
       try {
-        set({ isSyncing: true });
+        set({ isSyncing: true, syncError: null });
         const token = localStorage.getItem("authToken");
         const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:3001";
 
@@ -129,14 +132,18 @@ export const useFlowStore = create<FlowStore>((set, get) => ({
         });
 
         if (!response.ok) {
-          throw new Error("Failed to save flow");
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(errorData.message || "Failed to save flow");
         }
 
         console.log("✓ Flow saved to database");
+        set({ isSyncing: false, syncError: null });
       } catch (error) {
         console.error("Error saving flow:", error);
-      } finally {
-        set({ isSyncing: false });
+        set({
+          isSyncing: false,
+          syncError: error instanceof Error ? error.message : "Failed to save",
+        });
       }
     }, SAVE_DELAY);
   },
@@ -270,6 +277,94 @@ export const useFlowStore = create<FlowStore>((set, get) => ({
     );
     set({ nodes: newNodes });
     // Auto-save
+    get().saveFlowToDatabase();
+  },
+
+  autoLayout: () => {
+    const nodes = get().nodes;
+    const edges = get().edges;
+
+    if (nodes.length === 0) return;
+
+    // Build adjacency list to find connected components
+    const adjacency = new Map<string, string[]>();
+    nodes.forEach((node) => adjacency.set(node.id, []));
+
+    edges.forEach((edge) => {
+      adjacency.get(edge.source)?.push(edge.target);
+    });
+
+    // Find root nodes (nodes with no incoming edges)
+    const incomingCount = new Map<string, number>();
+    nodes.forEach((node) => incomingCount.set(node.id, 0));
+    edges.forEach((edge) => {
+      incomingCount.set(edge.target, (incomingCount.get(edge.target) || 0) + 1);
+    });
+
+    const rootNodes = nodes.filter((node) => incomingCount.get(node.id) === 0);
+
+    // Layout configuration
+    const HORIZONTAL_SPACING = 300;
+    const VERTICAL_SPACING = 150;
+    const START_X = 100;
+    const START_Y = 100;
+
+    // Assign levels using BFS
+    const levels = new Map<string, number>();
+    const visited = new Set<string>();
+    const queue: { id: string; level: number }[] = [];
+
+    rootNodes.forEach((node) => {
+      queue.push({ id: node.id, level: 0 });
+      visited.add(node.id);
+    });
+
+    while (queue.length > 0) {
+      const { id, level } = queue.shift()!;
+      levels.set(id, level);
+
+      const children = adjacency.get(id) || [];
+      children.forEach((childId) => {
+        if (!visited.has(childId)) {
+          visited.add(childId);
+          queue.push({ id: childId, level: level + 1 });
+        }
+      });
+    }
+
+    // Handle disconnected nodes
+    nodes.forEach((node) => {
+      if (!levels.has(node.id)) {
+        levels.set(node.id, 0);
+      }
+    });
+
+    // Group nodes by level
+    const nodesByLevel = new Map<number, Node[]>();
+    nodes.forEach((node) => {
+      const level = levels.get(node.id) || 0;
+      if (!nodesByLevel.has(level)) {
+        nodesByLevel.set(level, []);
+      }
+      nodesByLevel.get(level)!.push(node);
+    });
+
+    // Position nodes
+    const newNodes = nodes.map((node) => {
+      const level = levels.get(node.id) || 0;
+      const nodesInLevel = nodesByLevel.get(level) || [];
+      const indexInLevel = nodesInLevel.findIndex((n) => n.id === node.id);
+
+      return {
+        ...node,
+        position: {
+          x: START_X + level * HORIZONTAL_SPACING,
+          y: START_Y + indexInLevel * VERTICAL_SPACING,
+        },
+      };
+    });
+
+    set({ nodes: newNodes });
     get().saveFlowToDatabase();
   },
 
