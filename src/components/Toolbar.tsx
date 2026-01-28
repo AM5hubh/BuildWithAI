@@ -1,5 +1,4 @@
 import React from "react";
-import { useNavigate } from "react-router-dom";
 import { useFlowStore } from "../store/flowStore";
 import { executionEngine } from "../engine/executionEngine";
 import { downloadFlow } from "../utils/flowSerializer";
@@ -10,7 +9,6 @@ import { detectCycle, describeCycle } from "../utils/cycleDetector";
  * Provides controls for running, saving, and managing the flow
  */
 export const Toolbar: React.FC = () => {
-  const navigate = useNavigate();
   const {
     nodes,
     edges,
