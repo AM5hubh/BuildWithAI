@@ -124,10 +124,6 @@ export const Toolbar: React.FC = () => {
     useFlowStore.getState().addNode("output", { x: 700, y: 100 });
   };
 
-  const handleAddTool = () => {
-    useFlowStore.getState().addNode("tool", { x: 250, y: 300 });
-  };
-
   const handleAddSelectedTool = () => {
     // Stagger positions horizontally for better visibility
     const index = toolOptions.findIndex((t) => t.type === selectedTool);
