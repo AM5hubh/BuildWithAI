@@ -1,12 +1,11 @@
 import React, { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { ReactFlowProvider } from "reactflow";
 import { Toolbar } from "./components/Toolbar";
 import { FlowCanvas } from "./components/FlowCanvas";
 import { RightPanel } from "./components/RightPanel";
 import { SyncIndicator } from "./components/SyncIndicator";
 import { useFlowStore } from "./store/flowStore";
-import { loadFlowLocally } from "./utils/flowPersistence";
 
 // Import blocks to ensure they are registered
 import "./blocks";
@@ -24,22 +23,43 @@ interface User {
  */
 function App() {
   const navigate = useNavigate();
-  const { setNodes, setEdges, addNode, fetchModels } = useFlowStore();
+  const { projectId } = useParams<{ projectId: string }>();
+  const { setNodes, setEdges, addNode, fetchModels, setProjectId } =
+    useFlowStore();
   const [user, setUser] = useState<User | null>(null);
   const [showUserMenu, setShowUserMenu] = useState(false);
 
-  // Initialize with a default example flow or load from localStorage
+  // Initialize flow - load from database or create default
   useEffect(() => {
-    const initializeFlow = () => {
-      // Try to load from localStorage first
-      const savedFlow = loadFlowLocally();
+    const initializeFlow = async () => {
+      // Set projectId in store
+      if (projectId) {
+        setProjectId(projectId);
 
-      if (savedFlow && savedFlow.nodes.length > 0) {
-        // Restore from localStorage
-        setNodes(savedFlow.nodes);
-        setEdges(savedFlow.edges);
-        console.log("✓ Flow restored from localStorage");
-        return;
+        // Try to load flow from database
+        try {
+          const token = localStorage.getItem("authToken");
+          const response = await fetch(
+            `${import.meta.env.VITE_API_URL || "http://localhost:3001"}/api/flows/${projectId}`,
+            {
+              headers: {
+                Authorization: `Bearer ${token}`,
+              },
+            },
+          );
+
+          if (response.ok) {
+            const flow = await response.json();
+            if (flow.nodes && flow.nodes.length > 0) {
+              setNodes(flow.nodes);
+              setEdges(flow.edges || []);
+              console.log("✓ Flow restored from database");
+              return;
+            }
+          }
+        } catch (error) {
+          console.error("Error loading flow:", error);
+        }
       }
 
       // Otherwise create default flow
@@ -97,7 +117,7 @@ function App() {
     }
 
     initializeFlow();
-  }, [setNodes, setEdges, addNode, fetchModels]);
+  }, [projectId, setNodes, setEdges, addNode, fetchModels, setProjectId]);
 
   const handleLogout = () => {
     localStorage.removeItem("authToken");
