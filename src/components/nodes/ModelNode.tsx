@@ -46,6 +46,15 @@ export const ModelNode = memo(({ data, id, selected }: NodeProps) => {
         <div className="text-xs text-gray-600">
           {data.config?.model || "liquid/lfm-2.5-1.2b-instruct:free (free)"}
         </div>
+        <div className="text-xs text-gray-500">
+          {data.config?.modelType === "vision"
+            ? "👁️ Vision"
+            : data.config?.modelType === "embedding"
+              ? "📊 Embedding"
+              : data.config?.modelType === "speech"
+                ? "🔊 Speech"
+                : "📝 Text"}
+        </div>
 
         <Handle
           type="source"

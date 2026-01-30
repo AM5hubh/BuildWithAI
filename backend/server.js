@@ -5,6 +5,7 @@
 import express, { json } from "express";
 import cors from "cors";
 import OpenAI from "openai";
+import googleTTS from "google-tts-api";
 import dotenv from "dotenv";
 import { connectDB } from "./db/connect.js";
 import authRoutes from "./routes/auth.js";
@@ -51,6 +52,14 @@ app.post("/api/execute", async (req, res) => {
       return res.status(400).json({ error: "Model is required" });
     }
 
+    // Normalize model parameter - handle both string and object
+    let modelId = model;
+    if (typeof model === "object" && model.id) {
+      modelId = model.id;
+    } else if (typeof model !== "string") {
+      modelId = "liquid/lfm-2.5-1.2b-instruct:free";
+    }
+
     // Check if OpenRouter API key is configured
     if (!process.env.OPENROUTER_API_KEY) {
       // Return a mock response for demo purposes
@@ -72,7 +81,7 @@ app.post("/api/execute", async (req, res) => {
     });
 
     const completion = await openrouter.chat.completions.create({
-      model,
+      model: modelId,
       messages: [
         {
           role: "user",
@@ -102,8 +111,252 @@ app.post("/api/execute", async (req, res) => {
 });
 
 /**
- * Health check endpoint
+ * Vision API Endpoint
+ * POST /api/vision
+ * Analyzes images using vision models
  */
+app.post("/api/vision", async (req, res) => {
+  try {
+    const {
+      imageUrl,
+      prompt = "Analyze this image",
+      model,
+      temperature = 0.7,
+      maxTokens = 1024,
+    } = req.body;
+
+    if (!imageUrl) {
+      return res.status(400).json({ error: "Image URL is required" });
+    }
+
+    // Normalize model parameter
+    let modelId = "openai/gpt-4-vision";
+    if (model) {
+      if (typeof model === "string") {
+        modelId = model;
+      } else if (typeof model === "object" && model.id) {
+        modelId = model.id;
+      }
+    }
+
+    if (String(modelId).toLowerCase().includes("embedding")) {
+      modelId = "openai/gpt-4-vision"; // Ensure it does not use an embedding model
+    }
+
+    if (!process.env.OPENROUTER_API_KEY) {
+      return res.json({
+        result: `[Mock Vision Response] Analysis of image at ${imageUrl}:\n\nThis is a simulated vision response. To use real vision models, set OPENROUTER_API_KEY.`,
+        mock: true,
+      });
+    }
+
+    const openrouter = new OpenAI({
+      apiKey: process.env.OPENROUTER_API_KEY,
+      baseURL: "https://openrouter.ai/api/v1",
+      defaultHeaders: {
+        "HTTP-Referer": process.env.YOUR_SITE_URL || "http://localhost:3000",
+        "X-Title": process.env.YOUR_SITE_NAME || "BuildWithAi",
+      },
+    });
+
+    const completion = await openrouter.chat.completions.create({
+      model: modelId,
+      messages: [
+        {
+          role: "user",
+          content: [
+            {
+              type: "text",
+              text: prompt,
+            },
+            {
+              type: "image_url",
+              image_url: {
+                url: imageUrl,
+              },
+            },
+          ],
+        },
+      ],
+      temperature,
+      max_tokens: maxTokens,
+    });
+
+    const result =
+      completion.choices[0]?.message?.content || "No response generated";
+
+    res.json({
+      result,
+      mock: false,
+      model: completion.model,
+    });
+  } catch (error) {
+    console.error("Vision API error:", error);
+    res.status(error.status || 500).json({
+      error: "Vision API call failed",
+      message: error.message,
+      status: error.status,
+    });
+  }
+});
+
+/**
+ * Embedding API Endpoint
+ * POST /api/embedding
+ * Generates vector embeddings for text
+ */
+app.post("/api/embedding", async (req, res) => {
+  try {
+    const { text, model } = req.body;
+
+    if (!text) {
+      return res.status(400).json({ error: "Text is required" });
+    }
+
+    // Normalize model parameter - handle both string and object
+    let modelId = "openai/text-embedding-3-small";
+    if (model) {
+      if (typeof model === "string") {
+        modelId = model;
+      } else if (typeof model === "object" && model.id) {
+        modelId = model.id;
+      }
+    }
+
+    if (!String(modelId).toLowerCase().includes("embedding")) {
+      modelId = "openai/text-embedding-3-small";
+    }
+
+    console.log("[Embedding] Using model:", modelId);
+
+    if (!process.env.OPENROUTER_API_KEY) {
+      // Return mock embedding (array of random numbers)
+      const mockEmbedding = Array(1536)
+        .fill(0)
+        .map(() => Math.random());
+      return res.json({
+        embedding: mockEmbedding,
+        mock: true,
+        size: 1536,
+      });
+    }
+
+    const openrouter = new OpenAI({
+      apiKey: process.env.OPENROUTER_API_KEY,
+      baseURL: "https://openrouter.ai/api/v1",
+      defaultHeaders: {
+        "HTTP-Referer": process.env.YOUR_SITE_URL || "http://localhost:3000",
+        "X-Title": process.env.YOUR_SITE_NAME || "BuildWithAi",
+      },
+    });
+
+    const embedding = await openrouter.embeddings.create({
+      model: modelId,
+      input: text,
+    });
+
+    const vector = embedding.data[0]?.embedding || [];
+
+    res.json({
+      embedding: vector,
+      mock: false,
+      model: embedding.model,
+      size: vector.length,
+    });
+  } catch (error) {
+    console.error("Embedding API error:", error);
+    res.status(error.status || 500).json({
+      error: "Embedding API call failed",
+      message: error.message,
+      status: error.status,
+    });
+  }
+});
+
+/**
+ * Text-to-Speech API Endpoint
+ * POST /api/tts
+ * Converts text to speech audio
+ */
+app.post("/api/tts", async (req, res) => {
+  try {
+    const { text, voice = "alloy", format = "mp3" } = req.body;
+
+    if (!text) {
+      return res.status(400).json({ error: "Text is required" });
+    }
+
+    if (!process.env.OPENROUTER_API_KEY) {
+      try {
+        const parts = googleTTS.getAllAudioUrls(text, {
+          lang: "en",
+          slow: false,
+          host: "https://translate.google.com",
+        });
+
+        const audioParts = await Promise.all(
+          parts.map(async (part, index) => {
+            const ttsResponse = await fetch(part.url);
+            if (!ttsResponse.ok) {
+              throw new Error(`Mock TTS fetch failed: ${ttsResponse.status}`);
+            }
+
+            const buffer = Buffer.from(await ttsResponse.arrayBuffer());
+            const base64 = buffer.toString("base64");
+            return {
+              index,
+              text: part.shortText,
+              audioUrl: `data:audio/mpeg;base64,${base64}`,
+            };
+          }),
+        );
+
+        return res.json({
+          audioUrls: audioParts,
+          mock: true,
+          message:
+            "Mock TTS response via google-tts-api. Set OPENAI_API_KEY to use real text-to-speech.",
+        });
+      } catch (mockError) {
+        console.error("Mock TTS error:", mockError);
+        return res.status(500).json({
+          error: "Mock TTS failed",
+          message: mockError.message || "Unknown mock TTS error",
+        });
+      }
+    }
+
+    const openai = new OpenAI({
+      apiKey: process.env.OPENROUTER_API_KEY,
+    });
+
+    const mp3 = await openai.audio.speech.create({
+      model: "tts-1",
+      voice,
+      input: text,
+      response_format: format,
+    });
+
+    const buffer = Buffer.from(await mp3.arrayBuffer());
+    const base64 = buffer.toString("base64");
+    const audioUrl = `data:audio/${format};base64,${base64}`;
+
+    res.json({
+      audioUrl,
+      mock: false,
+      voice,
+      format,
+    });
+  } catch (error) {
+    console.error("TTS API error:", error);
+    res.status(error.status || 500).json({
+      error: "Text-to-speech API call failed",
+      message: error.message,
+      status: error.status,
+    });
+  }
+});
+
 app.get("/api/health", (req, res) => {
   res.json({
     status: "ok",

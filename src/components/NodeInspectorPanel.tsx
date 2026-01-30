@@ -17,8 +17,29 @@ export const NodeInspectorPanel: React.FC = () => {
   const [includeInput, setIncludeInput] = useState(false);
   const [inputPlaceholder, setInputPlaceholder] = useState("{input}");
   const [model, setModel] = useState("liquid/lfm-2.5-1.2b-instruct:free");
+
+  // Helper to normalize model values - ensure always a string
+  const handleModelChange = (newModel: any) => {
+    if (typeof newModel === "object" && newModel && "id" in newModel) {
+      setModel((newModel as any).id);
+    } else {
+      setModel(String(newModel || "liquid/lfm-2.5-1.2b-instruct:free"));
+    }
+  };
+  const [modelType, setModelType] = useState<
+    "text" | "vision" | "embedding" | "speech"
+  >("text");
   const [temperature, setTemperature] = useState(0.7);
   const [maxTokens, setMaxTokens] = useState(1024);
+  const [visionImageUrl, setVisionImageUrl] = useState("");
+  const [embeddingInput, setEmbeddingInput] = useState("");
+  const [speechInput, setSpeechInput] = useState("");
+  const [speechVoice, setSpeechVoice] = useState<
+    "alloy" | "echo" | "fern" | "onyx" | "nova" | "shimmer"
+  >("alloy");
+  const [speechFormat, setSpeechFormat] = useState<
+    "mp3" | "opus" | "aac" | "flac"
+  >("mp3");
   const [url, setUrl] = useState("");
   const [method, setMethod] = useState("GET");
   const [headers, setHeaders] = useState("{}");
@@ -35,6 +56,26 @@ export const NodeInspectorPanel: React.FC = () => {
   const [authValue, setAuthValue] = useState("");
   const [responseSelector, setResponseSelector] = useState("");
   const [fallbackValue, setFallbackValue] = useState("null");
+
+  // Ensure embedding uses a valid embedding model
+  useEffect(() => {
+    if (modelType === "embedding") {
+      const modelValue = typeof model === "string" ? model : "";
+      if (!modelValue || !modelValue.toLowerCase().includes("embedding")) {
+        setModel("openai/text-embedding-3-small");
+      }
+    }
+  }, [modelType, model]);
+
+  // Ensure vision uses a non-embedding model (vision-capable)
+  useEffect(() => {
+    if (modelType === "vision") {
+      const modelValue = typeof model === "string" ? model : "";
+      if (!modelValue || modelValue.toLowerCase().includes("embedding")) {
+        setModel("openai/gpt-4o-mini");
+      }
+    }
+  }, [modelType, model]);
 
   const [textOperation, setTextOperation] = useState("uppercase");
   const [findText, setFindText] = useState("");
@@ -81,9 +122,21 @@ export const NodeInspectorPanel: React.FC = () => {
     setVariablesList(vars);
     setIncludeInput(cfg.includeInput ?? false);
     setInputPlaceholder(cfg.inputPlaceholder || "{input}");
-    setModel(cfg.model || "liquid/lfm-2.5-1.2b-instruct:free (free)");
+    // Normalize model - if it's an object, extract the ID
+    const modelValue = cfg.model;
+    const normalizedModel =
+      typeof modelValue === "object" && modelValue && "id" in modelValue
+        ? (modelValue as any).id
+        : String(modelValue || "liquid/lfm-2.5-1.2b-instruct:free");
+    setModel(normalizedModel);
+    setModelType(cfg.modelType || "text");
     setTemperature(cfg.temperature ?? 0.7);
     setMaxTokens(cfg.maxTokens ?? 1024);
+    setVisionImageUrl(cfg.visionImageUrl || "");
+    setEmbeddingInput(cfg.embeddingInput || "");
+    setSpeechInput(cfg.speechInput || "");
+    setSpeechVoice(cfg.speechVoice || "alloy");
+    setSpeechFormat(cfg.speechFormat || "mp3");
     setUrl(cfg.url || "");
     setMethod(cfg.method || "GET");
     setHeaders(JSON.stringify(cfg.headers || {}, null, 2));
@@ -182,9 +235,22 @@ export const NodeInspectorPanel: React.FC = () => {
         break;
       }
       case "model": {
-        updatedConfig.model = model;
+        // Ensure model is a string ID, not an object
+        let modelId = model;
+        if (typeof model === "object" && model && "id" in model) {
+          modelId = (model as any).id;
+        }
+        updatedConfig.model = String(
+          modelId || "liquid/lfm-2.5-1.2b-instruct:free",
+        );
+        updatedConfig.modelType = modelType;
         updatedConfig.temperature = Number(temperature);
         updatedConfig.maxTokens = Number(maxTokens);
+        updatedConfig.visionImageUrl = visionImageUrl;
+        updatedConfig.embeddingInput = embeddingInput;
+        updatedConfig.speechInput = speechInput;
+        updatedConfig.speechVoice = speechVoice;
+        updatedConfig.speechFormat = speechFormat;
         break;
       }
       case "tool": {
@@ -397,40 +463,187 @@ export const NodeInspectorPanel: React.FC = () => {
 
   const renderModel = () => (
     <>
-      <ModelSelector
-        value={model}
-        onChange={(newModel) => setModel(newModel)}
-      />
-      <label className="block text-sm font-medium text-gray-700 mb-1 mt-4">
-        Temperature
-      </label>
-      <input
-        type="number"
-        step="0.1"
-        min="0"
-        max="2"
-        value={temperature}
-        onChange={(e) => setTemperature(parseFloat(e.target.value))}
-        className="w-full border border-gray-300 rounded p-2 text-sm mb-3"
-        aria-label="Temperature"
-      />
-      <p className="text-xs text-gray-500 mb-3">
-        Controls randomness: 0 = deterministic, 1 = balanced, 2 = creative
-      </p>
       <label className="block text-sm font-medium text-gray-700 mb-1">
-        Max Tokens
+        Model Type
       </label>
-      <input
-        type="number"
-        min="1"
-        value={maxTokens}
-        onChange={(e) => setMaxTokens(parseInt(e.target.value, 10))}
-        className="w-full border border-gray-300 rounded p-2 text-sm"
-        aria-label="Max tokens"
-      />
-      <p className="text-xs text-gray-500 mt-1">
-        Maximum length of the generated response
-      </p>
+      <select
+        value={modelType}
+        onChange={(e) => setModelType(e.target.value as any)}
+        className="w-full border border-gray-300 rounded p-2 text-sm mb-3"
+        aria-label="Model type"
+      >
+        <option value="text">Text Generation</option>
+        <option value="vision">Vision (Image Analysis)</option>
+        <option value="embedding">Embedding (Vector Representation)</option>
+        <option value="speech">Text-to-Speech</option>
+      </select>
+
+      {modelType === "text" && (
+        <>
+          <ModelSelector
+            value={model}
+            onChange={(newModel) => handleModelChange(newModel)}
+          />
+          <label className="block text-sm font-medium text-gray-700 mb-1 mt-4">
+            Temperature
+          </label>
+          <input
+            type="number"
+            step="0.1"
+            min="0"
+            max="2"
+            value={temperature}
+            onChange={(e) => setTemperature(parseFloat(e.target.value))}
+            className="w-full border border-gray-300 rounded p-2 text-sm mb-3"
+            aria-label="Temperature"
+          />
+          <p className="text-xs text-gray-500 mb-3">
+            Controls randomness: 0 = deterministic, 1 = balanced, 2 = creative
+          </p>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Max Tokens
+          </label>
+          <input
+            type="number"
+            min="1"
+            value={maxTokens}
+            onChange={(e) => setMaxTokens(parseInt(e.target.value, 10))}
+            className="w-full border border-gray-300 rounded p-2 text-sm"
+            aria-label="Max tokens"
+          />
+          <p className="text-xs text-gray-500 mt-1">
+            Maximum length of the generated response
+          </p>
+        </>
+      )}
+
+      {modelType === "vision" && (
+        <>
+          <label className="block text-sm font-medium text-gray-700 mb-1 mt-4">
+            Vision Model
+          </label>
+          <ModelSelector
+            value={model}
+            onChange={(newModel) => handleModelChange(newModel)}
+          />
+          <label className="block text-sm font-medium text-gray-700 mb-1 mt-4">
+            Image URL
+          </label>
+          <input
+            type="text"
+            value={visionImageUrl}
+            onChange={(e) => setVisionImageUrl(e.target.value)}
+            className="w-full border border-gray-300 rounded p-2 text-sm mb-3"
+            placeholder="https://example.com/image.jpg"
+            aria-label="Image URL"
+          />
+          <p className="text-xs text-gray-500 mb-3">
+            Provide a URL to the image you want to analyze
+          </p>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Temperature
+          </label>
+          <input
+            type="number"
+            step="0.1"
+            min="0"
+            max="2"
+            value={temperature}
+            onChange={(e) => setTemperature(parseFloat(e.target.value))}
+            className="w-full border border-gray-300 rounded p-2 text-sm mb-3"
+            aria-label="Temperature"
+          />
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Max Tokens
+          </label>
+          <input
+            type="number"
+            min="1"
+            value={maxTokens}
+            onChange={(e) => setMaxTokens(parseInt(e.target.value, 10))}
+            className="w-full border border-gray-300 rounded p-2 text-sm"
+            aria-label="Max tokens"
+          />
+        </>
+      )}
+
+      {modelType === "embedding" && (
+        <>
+          <label className="block text-sm font-medium text-gray-700 mb-1 mt-4">
+            Embedding Model
+          </label>
+          <ModelSelector
+            value={model}
+            onChange={(newModel) => handleModelChange(newModel)}
+          />
+          <label className="block text-sm font-medium text-gray-700 mb-1 mt-4">
+            Text Input (optional)
+          </label>
+          <textarea
+            value={embeddingInput}
+            onChange={(e) => setEmbeddingInput(e.target.value)}
+            className="w-full border border-gray-300 rounded p-2 text-sm"
+            placeholder="Leave empty to use input from previous block"
+            rows={3}
+            aria-label="Embedding input text"
+          />
+          <p className="text-xs text-gray-500 mt-1">
+            Converts text to a vector representation for similarity searches or
+            ML models
+          </p>
+        </>
+      )}
+
+      {modelType === "speech" && (
+        <>
+          <label className="block text-sm font-medium text-gray-700 mb-1 mt-4">
+            Text Input (optional)
+          </label>
+          <textarea
+            value={speechInput}
+            onChange={(e) => setSpeechInput(e.target.value)}
+            className="w-full border border-gray-300 rounded p-2 text-sm mb-3"
+            placeholder="Leave empty to use input from previous block"
+            rows={3}
+            aria-label="Speech input text"
+          />
+
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Voice
+          </label>
+          <select
+            value={speechVoice}
+            onChange={(e) => setSpeechVoice(e.target.value as any)}
+            className="w-full border border-gray-300 rounded p-2 text-sm mb-3"
+            aria-label="Voice selection"
+          >
+            <option value="alloy">Alloy</option>
+            <option value="echo">Echo</option>
+            <option value="fern">Fern</option>
+            <option value="onyx">Onyx</option>
+            <option value="nova">Nova</option>
+            <option value="shimmer">Shimmer</option>
+          </select>
+
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Audio Format
+          </label>
+          <select
+            value={speechFormat}
+            onChange={(e) => setSpeechFormat(e.target.value as any)}
+            className="w-full border border-gray-300 rounded p-2 text-sm"
+            aria-label="Audio format"
+          >
+            <option value="mp3">MP3</option>
+            <option value="opus">Opus</option>
+            <option value="aac">AAC</option>
+            <option value="flac">FLAC</option>
+          </select>
+          <p className="text-xs text-gray-500 mt-1">
+            Generates spoken audio from text
+          </p>
+        </>
+      )}
     </>
   );
 
