@@ -128,7 +128,8 @@ const getAudioUrls = (
   if (!value || typeof value !== "object") return null;
   if (Array.isArray(value.audioUrls)) {
     return value.audioUrls.filter(
-      (item) => item && typeof item.audioUrl === "string",
+      (item: { audioUrl?: unknown }) =>
+        item && typeof item.audioUrl === "string",
     );
   }
   return null;
