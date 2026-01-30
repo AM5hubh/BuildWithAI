@@ -11,7 +11,9 @@ export const NodeInspectorPanel: React.FC = () => {
   const selectedNode = nodes.find((n) => n.id === selectedNodeId);
 
   const [template, setTemplate] = useState("");
-  const [variables, setVariables] = useState("{}");
+  const [variablesList, setVariablesList] = useState<
+    Array<{ key: string; value: string }>
+  >([]);
   const [includeInput, setIncludeInput] = useState(false);
   const [inputPlaceholder, setInputPlaceholder] = useState("{input}");
   const [model, setModel] = useState("liquid/lfm-2.5-1.2b-instruct:free");
@@ -69,7 +71,14 @@ export const NodeInspectorPanel: React.FC = () => {
     const cfg: any = selectedNode.data?.config || {};
 
     setTemplate(cfg.template || "Explain {topic} in simple terms.");
-    setVariables(JSON.stringify(cfg.variables || {}, null, 2));
+    const vars =
+      cfg.variables && typeof cfg.variables === "object"
+        ? Object.entries(cfg.variables).map(([key, value]) => ({
+            key,
+            value: String(value),
+          }))
+        : [];
+    setVariablesList(vars);
     setIncludeInput(cfg.includeInput ?? false);
     setInputPlaceholder(cfg.inputPlaceholder || "{input}");
     setModel(cfg.model || "liquid/lfm-2.5-1.2b-instruct:free (free)");
@@ -158,7 +167,16 @@ export const NodeInspectorPanel: React.FC = () => {
     switch (selectedNode.type) {
       case "prompt": {
         updatedConfig.template = template;
-        updatedConfig.variables = parseJSON(variables, cfg.variables || {});
+        updatedConfig.variables = variablesList.reduce(
+          (acc: Record<string, string>, item) => {
+            const key = item.key.trim();
+            if (key) {
+              acc[key] = item.value;
+            }
+            return acc;
+          },
+          {},
+        );
         updatedConfig.includeInput = includeInput;
         updatedConfig.inputPlaceholder = inputPlaceholder;
         break;
@@ -309,17 +327,71 @@ export const NodeInspectorPanel: React.FC = () => {
         </>
       )}
 
-      <label className="block text-sm font-medium text-gray-700 mb-1">
-        Variables (JSON) - Static Defaults
-      </label>
-      <textarea
-        value={variables}
-        onChange={(e) => setVariables(e.target.value)}
-        className="w-full border border-gray-300 rounded p-2 text-xs font-mono"
-        aria-label="Prompt variables JSON"
-        rows={4}
-        placeholder='{"topic": "AI", "style": "professional"}'
-      />
+      <div className="flex items-center justify-between mb-2">
+        <label className="block text-sm font-medium text-gray-700">
+          Variables
+        </label>
+        <button
+          type="button"
+          onClick={() =>
+            setVariablesList((prev) => [...prev, { key: "", value: "" }])
+          }
+          className="text-xs px-2 py-1 rounded border border-gray-300 hover:bg-gray-50"
+        >
+          + Add variable
+        </button>
+      </div>
+
+      {variablesList.length === 0 && (
+        <div className="text-xs text-gray-500 mb-3">
+          No variables yet. Add key/value pairs to use as defaults.
+        </div>
+      )}
+
+      <div className="space-y-2">
+        {variablesList.map((item, index) => (
+          <div key={`var-${index}`} className="flex gap-2 items-center">
+            <input
+              type="text"
+              value={item.key}
+              onChange={(e) =>
+                setVariablesList((prev) =>
+                  prev.map((v, i) =>
+                    i === index ? { ...v, key: e.target.value } : v,
+                  ),
+                )
+              }
+              className="flex-1 border border-gray-300 rounded p-2 text-sm"
+              placeholder="variable_name"
+              aria-label={`Variable name ${index + 1}`}
+            />
+            <input
+              type="text"
+              value={item.value}
+              onChange={(e) =>
+                setVariablesList((prev) =>
+                  prev.map((v, i) =>
+                    i === index ? { ...v, value: e.target.value } : v,
+                  ),
+                )
+              }
+              className="flex-1 border border-gray-300 rounded p-2 text-sm"
+              placeholder="value"
+              aria-label={`Variable value ${index + 1}`}
+            />
+            <button
+              type="button"
+              onClick={() =>
+                setVariablesList((prev) => prev.filter((_, i) => i !== index))
+              }
+              className="text-xs px-2 py-1 rounded border border-gray-300 hover:bg-gray-50"
+              aria-label={`Remove variable ${index + 1}`}
+            >
+              Remove
+            </button>
+          </div>
+        ))}
+      </div>
     </>
   );
 
