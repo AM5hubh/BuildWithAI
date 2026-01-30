@@ -47,6 +47,7 @@ export const NodeInspectorPanel: React.FC = () => {
 
   const [searchEngine, setSearchEngine] = useState("duckduckgo");
   const [apiKey, setApiKey] = useState("");
+  const [googleSearchEngineId, setGoogleSearchEngineId] = useState("");
   const [maxResults, setMaxResults] = useState(5);
   const [safeSearch, setSafeSearch] = useState(true);
   const [resultFormat, setResultFormat] = useState("summary");
@@ -114,6 +115,7 @@ export const NodeInspectorPanel: React.FC = () => {
 
     setSearchEngine(cfg.searchEngine || "duckduckgo");
     setApiKey(cfg.apiKey || "");
+    setGoogleSearchEngineId(cfg.googleSearchEngineId || "");
     setMaxResults(cfg.maxResults ?? 5);
     setSafeSearch(cfg.safeSearch ?? true);
     setResultFormat(cfg.resultFormat || "summary");
@@ -217,6 +219,7 @@ export const NodeInspectorPanel: React.FC = () => {
       case "webSearch": {
         updatedConfig.searchEngine = searchEngine as any;
         updatedConfig.apiKey = apiKey;
+        updatedConfig.googleSearchEngineId = googleSearchEngineId;
         updatedConfig.maxResults = Number(maxResults);
         updatedConfig.safeSearch = safeSearch;
         updatedConfig.resultFormat = resultFormat as any;
@@ -633,6 +636,7 @@ export const NodeInspectorPanel: React.FC = () => {
       >
         <option value="duckduckgo">duckduckgo</option>
         <option value="brave">brave</option>
+        <option value="google">google</option>
         <option value="custom">custom</option>
       </select>
 
@@ -645,6 +649,20 @@ export const NodeInspectorPanel: React.FC = () => {
         className="w-full border border-gray-300 rounded p-2 text-sm mb-3"
         aria-label="API key"
       />
+
+      {searchEngine === "google" && (
+        <>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Google Search Engine ID (cx)
+          </label>
+          <input
+            value={googleSearchEngineId}
+            onChange={(e) => setGoogleSearchEngineId(e.target.value)}
+            className="w-full border border-gray-300 rounded p-2 text-sm mb-3"
+            aria-label="Google Search Engine ID"
+          />
+        </>
+      )}
 
       <label className="block text-sm font-medium text-gray-700 mb-1">
         Max Results

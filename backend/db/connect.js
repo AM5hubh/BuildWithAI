@@ -11,10 +11,7 @@ export const connectDB = async () => {
     process.env.MONGODB_URI || "mongodb://localhost:27017/buildwithai";
 
   try {
-    const connection = await mongoose.connect(mongoUri, {
-      useNewUrlParser: true,
-      useUnifiedTopology: true,
-    });
+    const connection = await mongoose.connect(mongoUri);
 
     cachedConnection = connection;
     console.log("MongoDB connected successfully");

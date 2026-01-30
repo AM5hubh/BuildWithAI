@@ -3,15 +3,16 @@ import { blockRegistry } from "./registry";
 
 /**
  * WebSearchBlock - Search the web using various search APIs
- * Supports: DuckDuckGo, Brave Search, or custom API
+ * Supports: DuckDuckGo, Brave Search, Google Custom Search, or custom API
  */
 const webSearchBlockDefinition: BlockDefinition = {
   type: "webSearch",
   label: "Web Search",
   description: "Search the web and return results",
   defaultConfig: {
-    searchEngine: "duckduckgo", // 'duckduckgo', 'brave', 'custom'
+    searchEngine: "duckduckgo", // 'duckduckgo', 'brave', 'google', 'custom'
     apiKey: "",
+    googleSearchEngineId: "",
     maxResults: 5,
     safeSearch: true,
     resultFormat: "summary", // 'summary', 'full', 'urls'
@@ -21,6 +22,7 @@ const webSearchBlockDefinition: BlockDefinition = {
     const {
       searchEngine = "duckduckgo",
       apiKey = "",
+      googleSearchEngineId = "",
       maxResults = 5,
       safeSearch = true,
       resultFormat = "summary",
@@ -43,9 +45,23 @@ const webSearchBlockDefinition: BlockDefinition = {
           throw new Error("Brave search requires an API key");
         }
         results = await searchBrave(query, apiKey, maxResults, safeSearch);
+      } else if (searchEngine === "google") {
+        if (!apiKey) {
+          throw new Error("Google search requires an API key");
+        }
+        if (!googleSearchEngineId) {
+          throw new Error("Google search requires a Search Engine ID (cx)");
+        }
+        results = await searchGoogle(
+          query,
+          apiKey,
+          googleSearchEngineId,
+          maxResults,
+          safeSearch,
+        );
       } else if (searchEngine === "custom") {
         throw new Error(
-          "Custom search engine not implemented. Please use DuckDuckGo or Brave.",
+          "Custom search engine not implemented. Please use DuckDuckGo, Brave, or Google.",
         );
       } else {
         throw new Error(`Unsupported search engine: ${searchEngine}`);
@@ -171,6 +187,52 @@ async function searchBrave(
   } catch (error) {
     throw new Error(
       `Brave search failed: ${error instanceof Error ? error.message : "Unknown error"}`,
+    );
+  }
+}
+
+/**
+ * Google Custom Search API (requires API key and Search Engine ID)
+ */
+async function searchGoogle(
+  query: string,
+  apiKey: string,
+  searchEngineId: string,
+  maxResults: number,
+  safeSearch: boolean,
+): Promise<any[]> {
+  try {
+    const clampedResults = Math.min(Math.max(maxResults, 1), 10);
+    const params = new URLSearchParams({
+      q: query,
+      key: apiKey,
+      cx: searchEngineId,
+      num: String(clampedResults),
+      safe: safeSearch ? "active" : "off",
+    });
+
+    const response = await fetch(
+      `https://www.googleapis.com/customsearch/v1?${params.toString()}`,
+    );
+
+    if (!response.ok) {
+      throw new Error(`Google API error: ${response.status}`);
+    }
+
+    const data = await response.json();
+
+    if (data.items && Array.isArray(data.items)) {
+      return data.items.map((item: any) => ({
+        title: item.title,
+        snippet: item.snippet,
+        url: item.link,
+      }));
+    }
+
+    return [];
+  } catch (error) {
+    throw new Error(
+      `Google search failed: ${error instanceof Error ? error.message : "Unknown error"}`,
     );
   }
 }

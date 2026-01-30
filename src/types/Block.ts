@@ -89,8 +89,9 @@ export interface BlockConfig {
   endDelimiter?: string;
 
   // WebSearchBlock config
-  searchEngine?: "duckduckgo" | "brave" | "custom";
+  searchEngine?: "duckduckgo" | "brave" | "google" | "custom";
   apiKey?: string;
+  googleSearchEngineId?: string;
   maxResults?: number;
   safeSearch?: boolean;
   resultFormat?: "summary" | "full" | "urls";
