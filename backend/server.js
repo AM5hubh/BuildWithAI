@@ -2,11 +2,13 @@
  * Backend Express Server
  * Handles AI execution requests, flow persistence, and authentication
  */
-import express, { json } from "express";
+import express, { json, static as serveStatic } from "express";
 import cors from "cors";
 import OpenAI from "openai";
 import googleTTS from "google-tts-api";
 import dotenv from "dotenv";
+import path from "path";
+import { fileURLToPath } from "url";
 import { connectDB } from "./db/connect.js";
 import authRoutes from "./routes/auth.js";
 import projectsRoutes from "./routes/projects.js";
@@ -19,9 +21,16 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 3001;
 
+// Get current directory path for ES modules
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
 // Middleware
 app.use(cors());
 app.use(json());
+
+// Serve static files from the dist directory (built React app)
+app.use(express.static(path.join(__dirname, "../dist")));
 
 // Initialize database and routes
 (async () => {
@@ -477,6 +486,15 @@ app.get("/api/models", async (req, res) => {
       fallback: true,
     });
   }
+});
+
+/**
+ * SPA Fallback Middleware
+ * Serves index.html for all non-API routes
+ * This allows React Router to handle client-side routing
+ */
+app.get("*", (req, res) => {
+  res.sendFile(path.join(__dirname, "../dist/index.html"));
 });
 
 // Start server

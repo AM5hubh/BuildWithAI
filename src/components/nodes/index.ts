@@ -9,3 +9,4 @@ export { TextExtractorNode } from "./TextExtractorNode";
 export { WebSearchNode } from "./WebSearchNode";
 export { ConditionNode } from "./ConditionNode";
 export { FileReaderNode } from "./FileReaderNode";
+export { BaseNode } from "./BaseNode";
