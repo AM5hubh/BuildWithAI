@@ -1,9 +1,9 @@
 // Import all blocks to ensure they are registered
-import "./PromptBlock";
-import "./ModelBlock";
-import "./OutputBlock";
-import "./ToolBlock";
-import "./MemoryBlock";
+import "./PromptBlock/PromptBlock";
+import "./ModelBlock/ModelBlock";
+import "./OutputBlock/OutputBlock";
+import "./ToolsBlock/ToolBlock";
+import "./MemoryBlock/MemoryBlock";
 import "./DataSourceBlock";
 import "./TextFormatterBlock";
 import "./TextExtractorBlock";

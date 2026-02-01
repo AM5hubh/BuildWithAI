@@ -286,7 +286,7 @@ app.post("/api/tts", async (req, res) => {
       return res.status(400).json({ error: "Text is required" });
     }
 
-    if (!process.env.OPENROUTER_API_KEY) {
+    if (!process.env.OPENAI_API_KEY) {
       try {
         const parts = googleTTS.getAllAudioUrls(text, {
           lang: "en",
@@ -327,7 +327,7 @@ app.post("/api/tts", async (req, res) => {
     }
 
     const openai = new OpenAI({
-      apiKey: process.env.OPENROUTER_API_KEY,
+      apiKey: process.env.OPENAI_API_KEY,
     });
 
     const mp3 = await openai.audio.speech.create({
