@@ -54,8 +54,14 @@ export interface BlockConfig {
 
   // ModelBlock config
   model?: string;
+  modelType?: "text" | "vision" | "embedding" | "speech"; // text, vision, embedding, speech
   temperature?: number;
   maxTokens?: number;
+  visionImageUrl?: string;
+  embeddingInput?: string;
+  speechInput?: string;
+  speechVoice?: "alloy" | "echo" | "fern" | "onyx" | "nova" | "shimmer";
+  speechFormat?: "mp3" | "opus" | "aac" | "flac";
 
   // OutputBlock config
   displayFormat?: "text" | "json" | "markdown";

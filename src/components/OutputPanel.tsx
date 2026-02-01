@@ -61,6 +61,88 @@ const renderMarkdown = (text: string) => {
   );
 };
 
+const isEmbeddingVector = (value: any): value is number[] =>
+  Array.isArray(value) &&
+  value.length > 0 &&
+  value.every((v) => typeof v === "number");
+
+const downsampleVector = (vector: number[], maxPoints = 128) => {
+  if (vector.length <= maxPoints) return vector;
+  const chunkSize = Math.ceil(vector.length / maxPoints);
+  const downsampled: number[] = [];
+  for (let i = 0; i < vector.length; i += chunkSize) {
+    const chunk = vector.slice(i, i + chunkSize);
+    const avg = chunk.reduce((sum, v) => sum + v, 0) / chunk.length;
+    downsampled.push(avg);
+  }
+  return downsampled;
+};
+
+const renderEmbeddingVisualization = (vector: number[]) => {
+  const downsampled = downsampleVector(vector, 128);
+  const maxAbs = Math.max(...downsampled.map((v) => Math.abs(v)), 1e-6);
+
+  return (
+    <div className="mt-3">
+      <div className="flex items-center justify-between text-xs text-gray-600 mb-2">
+        <span>Embedding visualization</span>
+        <span>{vector.length} dimensions</span>
+      </div>
+      <div className="h-16 bg-gray-50 border border-gray-200 rounded flex items-end gap-[1px] p-1 overflow-hidden">
+        {downsampled.map((value, idx) => {
+          const normalized = Math.min(Math.abs(value) / maxAbs, 1);
+          const height = Math.max(2, Math.round(normalized * 56));
+          return (
+            <div
+              key={idx}
+              className={value >= 0 ? "bg-blue-500" : "bg-purple-500"}
+              style={{ height, width: 2 }}
+              title={`#${idx}: ${value.toFixed(4)}`}
+            />
+          );
+        })}
+      </div>
+      <div className="mt-1 text-[10px] text-gray-500">
+        Downsampled to {downsampled.length} bars for display.
+      </div>
+    </div>
+  );
+};
+
+const getAudioUrl = (value: any): string | null => {
+  if (!value) return null;
+  if (typeof value === "string") {
+    return value.startsWith("data:audio/") || value.startsWith("mock:audio/")
+      ? value
+      : null;
+  }
+  if (typeof value === "object" && typeof value.audioUrl === "string") {
+    return value.audioUrl;
+  }
+  return null;
+};
+
+const getAudioUrls = (
+  value: any,
+): Array<{ index?: number; text?: string; audioUrl: string }> | null => {
+  if (!value || typeof value !== "object") return null;
+  if (Array.isArray(value.audioUrls)) {
+    return value.audioUrls.filter(
+      (item: { audioUrl?: unknown }) =>
+        item && typeof item.audioUrl === "string",
+    );
+  }
+  return null;
+};
+
+const getAudioFileName = (audioUrl: string) => {
+  if (audioUrl.includes("audio/wav")) return "speech-output.wav";
+  if (audioUrl.includes("audio/opus")) return "speech-output.opus";
+  if (audioUrl.includes("audio/aac")) return "speech-output.aac";
+  if (audioUrl.includes("audio/flac")) return "speech-output.flac";
+  return "speech-output.mp3";
+};
+
 const renderFormattedResult = (result: any, format: DisplayFormat) => {
   if (format === "json") {
     const parsed = tryParseJson(result);
@@ -155,6 +237,72 @@ export const OutputPanel: React.FC = () => {
                 <div className="text-xs font-semibold text-green-700 mb-2">
                   Final Output ({format}):
                 </div>
+                {(() => {
+                  const audioUrl = getAudioUrl(result);
+                  if (!audioUrl) return null;
+                  const isMock = audioUrl.startsWith("mock:");
+                  const playableUrl = isMock
+                    ? audioUrl.replace("mock:", "data:")
+                    : audioUrl;
+                  return (
+                    <div className="mb-3 p-2 bg-white border border-green-200 rounded">
+                      <div className="text-xs text-gray-600 mb-2">
+                        Text-to-speech audio
+                        {isMock ? " (mock)" : ""}
+                      </div>
+                      <audio controls src={playableUrl} className="w-full" />
+                      <div className="mt-2">
+                        <a
+                          href={playableUrl}
+                          download={getAudioFileName(playableUrl)}
+                          className="inline-flex items-center text-xs text-blue-600 hover:text-blue-800"
+                        >
+                          Download audio
+                        </a>
+                      </div>
+                    </div>
+                  );
+                })()}
+                {(() => {
+                  const audioUrls = getAudioUrls(result);
+                  if (!audioUrls || audioUrls.length === 0) return null;
+                  return (
+                    <div className="mb-3 p-2 bg-white border border-green-200 rounded">
+                      <div className="text-xs text-gray-600 mb-2">
+                        Text-to-speech audio (parts)
+                      </div>
+                      <div className="space-y-2">
+                        {audioUrls.map((item, idx) => (
+                          <div
+                            key={item.index ?? idx}
+                            className="border border-gray-200 rounded p-2"
+                          >
+                            <div className="text-[10px] text-gray-500 mb-1">
+                              Part {(item.index ?? idx) + 1}
+                              {item.text ? `: ${item.text}` : ""}
+                            </div>
+                            <audio
+                              controls
+                              src={item.audioUrl}
+                              className="w-full"
+                            />
+                            <div className="mt-1">
+                              <a
+                                href={item.audioUrl}
+                                download={getAudioFileName(item.audioUrl)}
+                                className="inline-flex items-center text-xs text-blue-600 hover:text-blue-800"
+                              >
+                                Download part
+                              </a>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })()}
+                {isEmbeddingVector(result) &&
+                  renderEmbeddingVisualization(result)}
                 {renderFormattedResult(result, format)}
               </div>
             );

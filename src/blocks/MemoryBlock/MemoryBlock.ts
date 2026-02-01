@@ -1,5 +1,5 @@
-import { Block, BlockDefinition, MemoryOperation } from "../types/Block";
-import { blockRegistry } from "./registry";
+import { Block, BlockDefinition, MemoryOperation } from "../../types/Block";
+import { blockRegistry } from "../registry";
 
 /**
  * MemoryBlock - Stores and retrieves data in memory

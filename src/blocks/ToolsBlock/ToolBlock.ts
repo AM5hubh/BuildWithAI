@@ -1,5 +1,5 @@
-import { Block, BlockDefinition } from "../types/Block";
-import { blockRegistry } from "./registry";
+import { Block, BlockDefinition } from "../../types/Block";
+import { blockRegistry } from "../registry";
 
 /**
  * ToolBlock - Makes HTTP API calls to external tools/services
