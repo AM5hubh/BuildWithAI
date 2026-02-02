@@ -8,7 +8,6 @@ import "./DataSourceBlock";
 import "./TextFormatterBlock";
 import "./TextExtractorBlock";
 import "./WebSearchBlock";
-import "./ConditionBlock";
 import "./FileReaderBlock";
 
 export { blockRegistry } from "./registry";
