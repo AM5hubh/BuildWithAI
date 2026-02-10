@@ -9,5 +9,6 @@ import "./TextFormatterBlock";
 import "./TextExtractorBlock";
 import "./WebSearchBlock";
 import "./FileReaderBlock";
+import "./ConditionBlock";
 
 export { blockRegistry } from "./registry";

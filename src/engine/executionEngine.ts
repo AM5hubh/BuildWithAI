@@ -28,6 +28,8 @@ export class ExecutionEngine {
     ) => void,
   ): Promise<Record<string, any>> {
     try {
+      const nodeMap = new Map(nodes.map((node) => [node.id, node]));
+
       // Validate graph structure first
       const validation = validateGraph(nodes, edges);
       logValidationResults(validation);
@@ -63,6 +65,23 @@ export class ExecutionEngine {
         const node = nodes.find((n) => n.id === nodeId);
         if (!node) continue;
 
+        const incomingEdges = edges.filter((e) => e.target === nodeId);
+        const activeIncomingEdges = this.filterActiveIncomingEdges(
+          incomingEdges,
+          nodeMap,
+          results,
+        );
+
+        if (incomingEdges.length > 0 && activeIncomingEdges.length === 0) {
+          const skippedResult = {
+            __skipped: true,
+            reason: "inactive-branch",
+          };
+          results[nodeId] = skippedResult;
+          onProgress?.(nodeId, "success", skippedResult);
+          continue;
+        }
+
         try {
           // Notify progress
           onProgress?.(nodeId, "running");
@@ -74,7 +93,7 @@ export class ExecutionEngine {
           }
 
           // Prepare input from connected blocks
-          const input = this.getInputForBlock(nodeId, edges, results);
+          const input = this.getInputForEdges(activeIncomingEdges, results);
 
           // Create block instance
           const block: Block = {
@@ -117,33 +136,49 @@ export class ExecutionEngine {
   /**
    * Get input for a block from its connected predecessors
    */
-  private getInputForBlock(
-    blockId: string,
-    edges: Edge[],
-    results: Record<string, any>,
-  ): any {
-    // Find all edges that connect to this block
-    const incomingEdges = edges.filter((e) => e.target === blockId);
-
-    // If no incoming edges, return null
-    if (incomingEdges.length === 0) {
+  private getInputForEdges(edges: Edge[], results: Record<string, any>): any {
+    if (edges.length === 0) {
       return null;
     }
 
-    // If single incoming edge, return that result directly
-    if (incomingEdges.length === 1) {
-      const sourceId = incomingEdges[0].source;
-      return results[sourceId];
+    if (edges.length === 1) {
+      return results[edges[0].source];
     }
 
-    // If multiple incoming edges, combine results into an object
     const combinedInput: Record<string, any> = {};
-    incomingEdges.forEach((edge) => {
-      const sourceId = edge.source;
-      combinedInput[sourceId] = results[sourceId];
+    edges.forEach((edge) => {
+      combinedInput[edge.source] = results[edge.source];
     });
 
     return combinedInput;
+  }
+
+  private filterActiveIncomingEdges(
+    edges: Edge[],
+    nodeMap: Map<string, Node>,
+    results: Record<string, any>,
+  ): Edge[] {
+    return edges.filter((edge) => {
+      const sourceResult = results[edge.source];
+      if (!sourceResult || sourceResult.__skipped) {
+        return false;
+      }
+
+      const sourceNode = nodeMap.get(edge.source);
+      if (sourceNode?.type === "condition") {
+        const branch =
+          sourceResult.branch ||
+          (sourceResult.result === true
+            ? "true"
+            : sourceResult.result === false
+              ? "false"
+              : "true");
+        const handle = edge.sourceHandle || "true";
+        return handle === branch;
+      }
+
+      return true;
+    });
   }
 }
 

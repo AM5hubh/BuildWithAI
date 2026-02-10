@@ -51,7 +51,7 @@ export const BaseNode = memo((props: BaseNodeProps) => {
   return (
     <NodeOutputTooltip nodeId={id}>
       <div
-        className={`px-4 py-3 shadow-md rounded-lg bg-white border-2 ${
+        className={`relative px-4 py-3 shadow-md rounded-lg bg-white border-2 ${
           selected ? "border-blue-500" : "border-gray-300"
         } ${minWidth} ${maxWidth || ""}`}
       >
