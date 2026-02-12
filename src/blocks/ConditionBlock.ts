@@ -17,6 +17,7 @@ const conditionBlockDefinition: BlockDefinition = {
     caseSensitive: false,
   },
 
+  
   execute: async (block: Block, input: any): Promise<any> => {
     const {
       operator = "equals",
